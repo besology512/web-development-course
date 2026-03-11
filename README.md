@@ -22,7 +22,21 @@ A full-stack Flight Booking System built for SWAPD352 Web Development Spring-202
 
 ## Setup Instructions
 
-### 1. Backend Setup
+### Option 1: Docker (Recommended)
+This project is fully containerized. To run the frontend, backend, and MongoDB simultaneously without any local dependencies:
+1. Ensure Docker Desktop is running.
+2. Open a terminal in the assignment directory and run:
+   ```bash
+   docker-compose up -d --build
+   ```
+3. Wait a moment for the containers to compile. The web app will be accessible at `http://localhost:5173` and the API at `http://localhost:5000`.
+4. (Optional) Inject demo flights and users into the database by running:
+   ```bash
+   docker-compose exec backend node seeder.js
+   ```
+
+### Option 2: Manual Setup (Local Node + MongoDB)
+#### Backend Setup
 1. Open a terminal and navigate to the backend directory:
    ```bash
    cd backend
@@ -42,11 +56,9 @@ A full-stack Flight Booking System built for SWAPD352 Web Development Spring-202
 4. Start the backend Node server:
    ```bash
    npm run start
-   # Or using node server.js directly
-   node server.js
    ```
 
-### 2. Frontend Setup
+#### Frontend Setup
 1. In another terminal, navigate to the frontend directory:
    ```bash
    cd frontend
@@ -60,13 +72,14 @@ A full-stack Flight Booking System built for SWAPD352 Web Development Spring-202
    npm run dev
    ```
 
-### 3. Usage & Testing
-1. Use the Register page to create an account.
-2. Check your Mailtrap sandbox for the verification email.
-3. Enter the code on the Verify Email page.
-4. Login using your registered credentials.
-5. Use the provided Postman collection JSON to create/manage flights as an admin (set a user's role to 'admin' manually in the database to test flight creation).
-6. Search and Book flights!
+## Usage & Testing
+1. **Testing Accounts**: If you ran the `seeder.js` script, you can log in immediately using:
+    - Admin: `admin@aerobooking.com` / `admin123`
+    - Student: `student@test.com` / `password123`
+2. **Registration Flow**: Use the Register page to create a new account.
+3. **Verification**: Check your Mailtrap sandbox for the verification email. Enter the 6-digit code on the Verify Email page.
+4. **Flight Search**: Log in to search and book flights!
+5. **Postman**: Import `Flight_Booking.postman_collection.json` to Postman to view detailed testing for all endpoints.
 
 ## Postman Testing
 Import `Flight_Booking.postman_collection.json` to Postman to view detailed testing for all endpoints and CRUD operations.
