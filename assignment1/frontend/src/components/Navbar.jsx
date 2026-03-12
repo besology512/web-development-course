@@ -23,7 +23,7 @@ const Navbar = () => {
                             <Link to="/" className="nav-link">Search Flights</Link>
                             <Link to="/bookings" className="nav-link">My Bookings</Link>
                             {user?.role === 'admin' && (
-                                <span className="nav-link" style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Admin Panel</span>
+                                <Link to="/admin" className="nav-link" style={{ color: 'var(--primary)', fontWeight: 'bold' }}>Admin Panel</Link>
                             )}
                             <button onClick={handleLogout} className="btn btn-secondary" style={{ padding: '0.4rem 1rem' }}>Logout</button>
                         </>
