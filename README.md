@@ -11,6 +11,10 @@ A full-stack web application designed for booking and managing flights.
 - **Tech Stack:** Node.js, Express, MongoDB, React, Vite, Custom Glassmorphism CSS
 - **Features:** JWT Authentication, Mailtrap Email Verification, Flight filtering, Seat availability transaction handling, and Docker orchestration. 
 
+### 📁 [Lab 4: MongoDB & Authentication](./lab4)
+Practical exercises covering database integration, JWT authentication, and Role-Based Access Control (RBAC).
+- **Key Concepts:** Mongoose, Password Hashing (bcrypt), JWT, Middleware protection.
+
 ### 📁 Assignment 2
 *(Upcoming...)*
 
