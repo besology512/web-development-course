@@ -15,11 +15,11 @@ A full-stack web application designed for booking and managing flights.
 Practical exercises covering database integration, JWT authentication, and Role-Based Access Control (RBAC).
 - **Key Concepts:** Mongoose, Password Hashing (bcrypt), JWT, Middleware protection.
 
-### 📁 Assignment 2
-*(Upcoming...)*
-
-### 📁 Final Project
-*(Upcoming...)*
+### 📁 [Phase 1: ClipSphere Backend](./course_project/clipsphere-backend)
+A robust, dockerized video sharing platform backend with comprehensive testing and security.
+- **Features:** JWT Authentication, Role-Based Access Control (RBAC), Follower System, Video Metadata Management, Admin Oversight, and Docker orchestration.
+- **Tech Stack:** Node.js, Express, MongoDB, Mongoose, Zod, Jest, Supertest.
+- **Verification:** 100% test pass rate with automated PowerShell verification script.
 
 ---
 *Created by besology512 for Spring 2026 Evaluation.*
