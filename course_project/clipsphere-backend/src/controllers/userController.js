@@ -1,27 +1,5 @@
-const User = require('../models/User');
-const Follower = require('../models/Follower');
+const userService = require('../services/userService');
 const { z } = require('zod');
-
-const updateMeSchema = z.object({
-    username: z.string().min(3).max(30).optional(),
-    bio: z.string().max(200).optional(),
-    avatarKey: z.string().optional()
-});
-
-const updatePreferencesSchema = z.object({
-    inApp: z.object({
-        followers: z.boolean().optional(),
-        comments: z.boolean().optional(),
-        likes: z.boolean().optional(),
-        tips: z.boolean().optional()
-    }).optional(),
-    email: z.object({
-        followers: z.boolean().optional(),
-        comments: z.boolean().optional(),
-        likes: z.boolean().optional(),
-        tips: z.boolean().optional()
-    }).optional()
-});
 
 exports.getMe = (req, res) => {
     res.status(200).json({
@@ -34,13 +12,7 @@ exports.getMe = (req, res) => {
 
 exports.updateMe = async (req, res, next) => {
     try {
-        const validatedData = updateMeSchema.parse(req.body);
-
-        // Filter out fields that are not allowed to be updated here (like password, role)
-        const updatedUser = await User.findByIdAndUpdate(req.user.id, validatedData, {
-            new: true,
-            runValidators: true
-        });
+        const updatedUser = await userService.updateMe(req.user.id, req.body);
 
         res.status(200).json({
             status: 'success',
@@ -59,10 +31,7 @@ exports.updateMe = async (req, res, next) => {
 
 exports.getUser = async (req, res, next) => {
     try {
-        const user = await User.findById(req.params.id);
-        if (!user || !user.active) {
-            return res.status(404).json({ status: 'error', message: 'User not found' });
-        }
+        const user = await userService.getUser(req.params.id);
 
         res.status(200).json({
             status: 'success',
@@ -71,29 +40,30 @@ exports.getUser = async (req, res, next) => {
             }
         });
     } catch (error) {
+        if (error.statusCode) {
+            return res.status(error.statusCode).json({ status: 'error', message: error.message });
+        }
         next(error);
     }
 };
 
 exports.followUser = async (req, res, next) => {
     try {
-        const followingId = req.params.id;
-        const followerId = req.user.id;
-
-        const follow = await Follower.create({
-            followerId,
-            followingId
-        });
+        const result = await userService.followUser(req.user.id, req.params.id);
 
         res.status(201).json({
             status: 'success',
             data: {
-                follow
+                follow: result.follow,
+                notificationPlan: result.notificationPlan
             }
         });
     } catch (error) {
         if (error.code === 11000) {
             return res.status(400).json({ status: 'error', message: 'You are already following this user' });
+        }
+        if (error.statusCode) {
+            return res.status(error.statusCode).json({ status: 'error', message: error.message });
         }
         next(error);
     }
@@ -101,13 +71,7 @@ exports.followUser = async (req, res, next) => {
 
 exports.unfollowUser = async (req, res, next) => {
     try {
-        const followingId = req.params.id;
-        const followerId = req.user.id;
-
-        await Follower.findOneAndDelete({
-            followerId,
-            followingId
-        });
+        await userService.unfollowUser(req.user.id, req.params.id);
 
         res.status(204).json({
             status: 'success',
@@ -120,7 +84,7 @@ exports.unfollowUser = async (req, res, next) => {
 
 exports.getFollowers = async (req, res, next) => {
     try {
-        const followers = await Follower.find({ followingId: req.params.id }).populate('followerId', 'username avatarKey');
+        const followers = await userService.getFollowers(req.params.id);
         res.status(200).json({
             status: 'success',
             results: followers.length,
@@ -135,7 +99,7 @@ exports.getFollowers = async (req, res, next) => {
 
 exports.getFollowing = async (req, res, next) => {
     try {
-        const following = await Follower.find({ followerId: req.params.id }).populate('followingId', 'username avatarKey');
+        const following = await userService.getFollowing(req.params.id);
         res.status(200).json({
             status: 'success',
             results: following.length,
@@ -150,21 +114,7 @@ exports.getFollowing = async (req, res, next) => {
 
 exports.updatePreferences = async (req, res, next) => {
     try {
-        const validatedData = updatePreferencesSchema.parse(req.body);
-
-        // Nested update for notifications
-        const currentNotifications = req.user.notifications;
-        const newNotifications = {
-            inApp: { ...currentNotifications.inApp, ...validatedData.inApp },
-            email: { ...currentNotifications.email, ...validatedData.email }
-        };
-
-        const updatedUser = await User.findByIdAndUpdate(req.user.id, {
-            notifications: newNotifications
-        }, {
-            new: true,
-            runValidators: true
-        });
+        const updatedUser = await userService.updatePreferences(req.user, req.body);
 
         res.status(200).json({
             status: 'success',

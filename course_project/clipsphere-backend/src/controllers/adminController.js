@@ -1,54 +1,13 @@
-const User = require('../models/User');
-const Video = require('../models/Video');
-const Review = require('../models/Review');
-const mongoose = require('mongoose');
+const adminService = require('../services/adminService');
+const { z } = require('zod');
 
 exports.getStats = async (req, res, next) => {
     try {
-        const stats = await Promise.all([
-            User.countDocuments(),
-            Video.countDocuments(),
-            // Most active users of the week (based on video uploads)
-            Video.aggregate([
-                {
-                    $match: {
-                        createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-                    }
-                },
-                {
-                    $group: {
-                        _id: '$owner',
-                        videoCount: { $sum: 1 }
-                    }
-                },
-                { $sort: { videoCount: -1 } },
-                { $limit: 5 },
-                {
-                    $lookup: {
-                        from: 'users',
-                        localField: '_id',
-                        foreignField: '_id',
-                        as: 'userDetails'
-                    }
-                },
-                { $unwind: '$userDetails' },
-                {
-                    $project: {
-                        username: '$userDetails.username',
-                        videoCount: 1
-                    }
-                }
-            ])
-        ]);
+        const stats = await adminService.getStats();
 
         res.status(200).json({
             status: 'success',
-            data: {
-                totalUsers: stats[0],
-                totalVideos: stats[1],
-                totalTips: 0, // Placeholder for Phase 3
-                mostActiveUsers: stats[2]
-            }
+            data: stats
         });
     } catch (error) {
         next(error);
@@ -57,18 +16,7 @@ exports.getStats = async (req, res, next) => {
 
 exports.updateUserStatus = async (req, res, next) => {
     try {
-        const { status, active } = req.body;
-        const user = await User.findByIdAndUpdate(req.params.id, { 
-            accountStatus: status, 
-            active: active !== undefined ? active : true 
-        }, {
-            new: true,
-            runValidators: true
-        });
-
-        if (!user) {
-            return res.status(404).json({ status: 'error', message: 'User not found' });
-        }
+        const user = await adminService.updateUserStatus(req.params.id, req.body);
 
         res.status(200).json({
             status: 'success',
@@ -77,16 +25,20 @@ exports.updateUserStatus = async (req, res, next) => {
             }
         });
     } catch (error) {
-        next(error);
+        if (error instanceof z.ZodError) {
+            res.status(400).json({ status: 'error', message: error.errors });
+        } else if (error.statusCode) {
+            res.status(error.statusCode).json({ status: 'error', message: error.message });
+        } else {
+            next(error);
+        }
     }
 };
 
 exports.getModerationQueue = async (req, res, next) => {
     try {
-        // Find videos flagged or with low average rating
-        const videos = await Video.find({ status: 'flagged' }).populate('owner', 'username');
-        
-        // This is a simplified moderation queue
+        const videos = await adminService.getModerationQueue();
+
         res.status(200).json({
             status: 'success',
             results: videos.length,
@@ -101,21 +53,11 @@ exports.getModerationQueue = async (req, res, next) => {
 
 exports.getAdminHealth = async (req, res, next) => {
     try {
-        const uptime = process.uptime();
-        const memoryUsage = process.memoryUsage();
-        const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+        const healthData = await adminService.getAdminHealth();
 
         res.status(200).json({
             status: 'success',
-            data: {
-                uptime: `${Math.floor(uptime)} seconds`,
-                memory: {
-                    rss: `${Math.round(memoryUsage.rss / 1024 / 1024 * 100) / 100} MB`,
-                    heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024 * 100) / 100} MB`,
-                    heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024 * 100) / 100} MB`
-                },
-                dbConnection: dbStatus
-            }
+            data: healthData
         });
     } catch (error) {
         next(error);
