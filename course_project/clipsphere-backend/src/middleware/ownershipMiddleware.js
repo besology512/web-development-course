@@ -11,10 +11,9 @@ exports.isOwner = (Model) => {
             }
 
             // Check if user is owner
-            // In most models it's 'owner' or 'user', or in User model itself it's '_id'
             const ownerId = resource.owner || resource.user || resource._id;
 
-            if (ownerId.toString() !== req.user.id && req.user.role !== 'admin') {
+            if (ownerId.toString() !== req.user.id) {
                 return res.status(403).json({ 
                     status: 'error', 
                     message: 'You do not have permission to perform this action' 
@@ -28,7 +27,7 @@ exports.isOwner = (Model) => {
     };
 };
 
-// Specifically for videos as per requirements
+// Owner-only video update (no admin bypass for update)
 exports.videoOwnership = async (req, res, next) => {
     try {
         const video = await Video.findById(req.params.id);
@@ -36,8 +35,8 @@ exports.videoOwnership = async (req, res, next) => {
             return res.status(404).json({ status: 'error', message: 'Video not found' });
         }
 
-        // Ownership logic comparison
-        if (video.owner.toString() !== req.user.id && req.user.role !== 'admin') {
+        // Only the owner can update a video
+        if (video.owner.toString() !== req.user.id) {
             return res.status(403).json({ 
                 status: 'error', 
                 message: 'Ownership verification failed: You do not own this video.' 
@@ -50,7 +49,7 @@ exports.videoOwnership = async (req, res, next) => {
     }
 };
 
-// Admin can delete any video, but only owner can edit
+// Admin can delete any video, owner can also delete
 exports.videoDeletePermission = async (req, res, next) => {
     try {
         const video = await Video.findById(req.params.id);
