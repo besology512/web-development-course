@@ -31,7 +31,7 @@ const videoSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['public', 'private', 'flagged'],
+        enum: ['public', 'private', 'flagged', 'reported'],
         default: 'public'
     }
 }, {
