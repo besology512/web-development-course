@@ -74,7 +74,7 @@ describe('User Endpoints', () => {
         expect(res.body.status).toEqual('success');
     });
 
-    it('should list following', async () => {
+    it('should list following (public endpoint)', async () => {
         const res = await request(app)
             .get(`/api/v1/users/${user._id}/following`);
 
