@@ -19,13 +19,13 @@ const followerSchema = new mongoose.Schema({
 followerSchema.index({ followerId: 1, followingId: 1 }, { unique: true });
 
 // Pre-save hook to prevent following oneself
-followerSchema.pre('save', function(next) {
+// Mongoose 9+: pre-save hooks no longer receive next(), use throw instead
+followerSchema.pre('save', function() {
     if (this.followerId.toString() === this.followingId.toString()) {
         const err = new Error('A user cannot follow themselves');
         err.statusCode = 400;
-        return next(err);
+        throw err;
     }
-    next();
 });
 
 const Follower = mongoose.model('Follower', followerSchema);
