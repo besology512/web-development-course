@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideoStream - Premium Sharing</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="navbar">
+        <div class="container">
+            <h1 class="logo">VideoStream</h1>
+            <nav id="auth-nav">
+                <!-- Dynamic content: Login/Signup or User Profile -->
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section id="auth-section" class="card hidden">
+            <!-- Login/Signup Forms -->
+        </section>
+
+        <section id="video-section">
+            <div class="section-header">
+                <h2>Browse Videos</h2>
+                <div class="controls">
+                    <input type="text" id="filter-title" placeholder="Search by title...">
+                    <select id="sort-order">
+                        <option value="-createdAt">Newest First</option>
+                        <option value="createdAt">Oldest First</option>
+                        <option value="title">Title (A-Z)</option>
+                        <option value="-title">Title (Z-A)</option>
+                    </select>
+                    <button id="btn-create-video" class="btn btn-primary hidden">Add Video</button>
+                </div>
+            </div>
+            
+            <div id="video-list" class="grid">
+                <!-- Dynamic video cards -->
+            </div>
+
+            <div class="pagination">
+                <button id="prev-page" class="btn btn-secondary">Previous</button>
+                <span id="page-info">Page 1</span>
+                <button id="next-page" class="btn btn-secondary">Next</button>
+            </div>
+        </section>
+
+        <section id="video-detail-section" class="card hidden">
+            <button id="btn-back" class="btn btn-link">&larr; Back to Feed</button>
+            <div id="video-content"></div>
+            <hr>
+            <div class="comments-area">
+                <h3>Comments</h3>
+                <div id="comment-list"></div>
+                <div id="add-comment-form" class="hidden">
+                    <textarea id="comment-text" placeholder="Write a comment..."></textarea>
+                    <button id="btn-submit-comment" class="btn btn-primary">Post Comment</button>
+                </div>
+                <p id="comment-login-msg" class="info-msg">Please <a href="#" id="link-login">login</a> to add a comment.</p>
+            </div>
+        </section>
+
+        <!-- Create Video Modal -->
+        <div id="video-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3>Post New Video</h3>
+                <form id="create-video-form">
+                    <div class="form-group">
+                        <label for="video-title">Title</label>
+                        <input type="text" id="video-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="video-desc">Description</label>
+                        <textarea id="video-desc"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" id="btn-close-modal" class="btn btn-secondary">Cancel</button>
+                        <button type="submit" class="btn btn-success">Create</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="frontend.js"></script>
+</body>
+</html>

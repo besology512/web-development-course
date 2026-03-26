@@ -21,5 +21,11 @@ A robust, dockerized video sharing platform backend with comprehensive testing a
 - **Tech Stack:** Node.js, Express, MongoDB, Mongoose, Zod, Jest, Supertest.
 - **Verification:** 100% test pass rate with automated PowerShell verification script.
 
+### 📁 [Lab 5: Testing & API Documentation](./lab5)
+Advanced exercises on automated testing with Postman and API documentation with Swagger.
+- **Part 1-3:** Postman environment switching, automated test scripts (GET/POST), and Collection Runner.
+- **Part 4-5:** Swagger YAML documentation and Swagger UI integration.
+- **Verification:** Automated verification of API responses and documentation access.
+
 ---
 *Created by besology512 for Spring 2026 Evaluation.*
