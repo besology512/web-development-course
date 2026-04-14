@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { z } = require('zod');
+let emailQueue;
+try { emailQueue = require('../queues/emailQueue'); } catch(e) {}
 
 const registerSchema = z.object({
     username: z.string().min(3).max(30),
@@ -30,6 +32,10 @@ exports.register = async (data) => {
 
     const token = signToken(newUser._id);
     newUser.password = undefined;
+
+    if (emailQueue) {
+        emailQueue.add('sendWelcome', { to: newUser.email, username: newUser.username }).catch(() => {});
+    }
 
     return { user: newUser, token };
 };

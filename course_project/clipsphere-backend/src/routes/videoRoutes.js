@@ -220,6 +220,7 @@ router.delete('/:id', videoDeletePermission, videoController.deleteVideo);
  *         description: Not authenticated
  */
 router.post('/:id/reviews', videoController.addReview);
+router.post('/:id/like', videoController.likeVideo);
 
 /**
  * @swagger

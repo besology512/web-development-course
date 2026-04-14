@@ -11,7 +11,10 @@ const errorMiddleware = require('./middleware/errorMiddleware');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const videoRoutes = require('./routes/videoRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const tipRoutes = require('./routes/tipRoutes');
+const rateLimit = require('express-rate-limit');
 
 dotenv.config();
 
@@ -19,9 +22,22 @@ const app = express();
 
 // Middleware
 app.use(helmet()); // Security headers
-app.use(cors()); // Enable CORS
+app.use(cors({
+    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    credentials: true
+}));
+
+// Raw body for Stripe webhook (must be before express.json)
+app.use('/api/v1/tips/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json()); // Body parser
 app.use(mongoSanitize()); // Data sanitization against NoSQL query injection
+
+// Rate limiting
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { status: 'error', message: 'Too many requests, please try again later.' } });
+const uploadLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 20, message: { status: 'error', message: 'Upload limit reached, please try again later.' } });
+app.use('/api/v1/auth', authLimiter);
+app.use('/api/v1/videos/upload', uploadLimiter);
 
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev')); // Logging
@@ -61,7 +77,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/videos', videoRoutes);
+app.use('/api/v1/videos', uploadRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/tips', tipRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {
