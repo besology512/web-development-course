@@ -29,6 +29,9 @@ async function request(path: string, options: RequestInit = {}) {
         headers['Content-Type'] = 'application/json';
     }
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (!token && path.startsWith('/admin')) {
+        headers['x-local-demo-access'] = 'true';
+    }
     const res = await fetch(`${BASE}${path}`, { ...options, headers, cache: 'no-store' });
     if (!res.ok) {
         const err = await res.json().catch(() => ({ message: 'Request failed' }));

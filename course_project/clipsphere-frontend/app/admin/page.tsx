@@ -11,22 +11,31 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(true);
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
+    const [localDemoAccess, setLocalDemoAccess] = useState<boolean | null>(null);
 
     useEffect(() => {
-        if (!authLoading && (!user || user.role !== 'admin')) {
+        if (typeof window === 'undefined') return;
+        const host = window.location.hostname;
+        setLocalDemoAccess(host === 'localhost' || host === '127.0.0.1');
+    }, []);
+
+    useEffect(() => {
+        if (localDemoAccess === null) return;
+        if (!authLoading && !localDemoAccess && (!user || user.role !== 'admin')) {
             router.push('/feed');
         }
-    }, [user, authLoading, router]);
+    }, [user, authLoading, localDemoAccess, router]);
 
     useEffect(() => {
-        if (!user || user.role !== 'admin') return;
+        if (localDemoAccess === null) return;
+        if (!localDemoAccess && (!user || user.role !== 'admin')) return;
         Promise.all([api.get('/admin/stats'), api.get('/admin/health')])
             .then(([s, h]) => { setStats(s); setHealth(h); })
             .catch(console.error)
             .finally(() => setLoading(false));
-    }, [user]);
+    }, [user, localDemoAccess]);
 
-    if (authLoading || loading) return (
+    if (authLoading || loading || localDemoAccess === null) return (
         <div className="min-h-screen">
             <NavBar />
             <div className="flex items-center justify-center h-64">
@@ -47,6 +56,11 @@ export default function AdminPage() {
             <NavBar />
             <div className="max-w-4xl mx-auto px-4 py-8">
                 <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
+                {localDemoAccess && (
+                    <div className="mb-6 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                        Local demo admin access is enabled on this machine, so this dashboard opens without manual login.
+                    </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     {statCards.map(s => (
                         <div key={s.label} className="bg-gray-900 border border-gray-800 rounded-2xl p-5">

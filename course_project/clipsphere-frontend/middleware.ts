@@ -6,8 +6,10 @@ const protectedRoutes = ['/upload', '/settings', '/admin'];
 export function middleware(request: NextRequest) {
     const path = request.nextUrl.pathname;
     const isProtected = protectedRoutes.some(r => path.startsWith(r));
+    const isLocalAdminPreview = path.startsWith('/admin') &&
+        (request.nextUrl.hostname === 'localhost' || request.nextUrl.hostname === '127.0.0.1');
 
-    if (isProtected) {
+    if (isProtected && !isLocalAdminPreview) {
         const token = request.cookies.get('token')?.value ||
             request.headers.get('authorization')?.replace('Bearer ', '');
         if (!token) {
