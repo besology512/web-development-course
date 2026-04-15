@@ -16,8 +16,9 @@ export default function RegisterPage() {
         setLoading(true);
         try {
             const res = await api.post('/auth/register', form);
-            setToken(res.data.token);
+            setToken(res.token);
             localStorage.setItem('user', JSON.stringify(res.data.user));
+            router.refresh();
             router.push('/feed');
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'Registration failed');
@@ -26,29 +27,107 @@ export default function RegisterPage() {
         }
     };
 
+    const update = (k: keyof typeof form) => (v: string) => setForm({ ...form, [k]: v });
+
     return (
-        <div className="min-h-screen flex items-center justify-center px-4">
-            <form onSubmit={handleSubmit} className="bg-gray-900 border border-gray-800 p-8 rounded-2xl w-full max-w-md space-y-4">
-                <div className="text-center mb-6">
-                    <h1 className="text-3xl font-bold text-indigo-400">ClipSphere</h1>
-                    <p className="text-gray-400 text-sm mt-1">Create your account</p>
+        <div className="min-h-screen flex items-center justify-center px-4"
+             style={{ background: '#f7f8fa' }}>
+            <div className="w-full max-w-md">
+                <div className="text-center mb-8">
+                    <Link href="/feed"
+                          style={{ color: '#4f46e5', textDecoration: 'none', fontSize: 28, fontWeight: 700 }}>
+                        ClipSphere
+                    </Link>
+                    <p style={{ color: '#64748b', fontSize: 14, marginTop: 6 }}>
+                        Create your account
+                    </p>
                 </div>
-                {error && <p className="text-red-400 text-sm text-center bg-red-400/10 px-3 py-2 rounded-lg">{error}</p>}
-                <input value={form.username} onChange={e => setForm({...form, username: e.target.value})} placeholder="Username"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors" required />
-                <input value={form.email} onChange={e => setForm({...form, email: e.target.value})} type="email" placeholder="Email"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors" required />
-                <input value={form.password} onChange={e => setForm({...form, password: e.target.value})} type="password" placeholder="Password (min 8 chars)"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors" required />
-                <button type="submit" disabled={loading}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 py-3 rounded-xl font-semibold transition-colors">
-                    {loading ? 'Creating account...' : 'Create Account'}
-                </button>
-                <p className="text-center text-sm text-gray-400">
-                    Have an account?{' '}
-                    <Link href="/login" className="text-indigo-400 hover:underline">Sign in</Link>
-                </p>
-            </form>
+
+                <form onSubmit={handleSubmit}
+                      style={{
+                          background: '#ffffff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: 16,
+                          padding: 32,
+                          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)'
+                      }}>
+                    {error && (
+                        <div style={{
+                                background: '#fef2f2',
+                                border: '1px solid #fecaca',
+                                color: '#b91c1c',
+                                padding: '10px 14px',
+                                borderRadius: 8,
+                                fontSize: 14,
+                                marginBottom: 16
+                             }}>
+                            {error}
+                        </div>
+                    )}
+
+                    <Field label="Username" value={form.username} onChange={update('username')} placeholder="coolcreator" />
+                    <Field label="Email" type="email" value={form.email} onChange={update('email')} placeholder="you@example.com" />
+                    <Field label="Password" type="password" value={form.password} onChange={update('password')} placeholder="Minimum 8 characters" />
+
+                    <button type="submit" disabled={loading}
+                            style={{
+                                width: '100%',
+                                background: loading ? '#a5b4fc' : '#4f46e5',
+                                color: '#fff',
+                                border: 'none',
+                                padding: '12px 20px',
+                                borderRadius: 10,
+                                fontSize: 15,
+                                fontWeight: 600,
+                                marginTop: 8,
+                                opacity: loading ? 0.8 : 1
+                            }}
+                            onMouseOver={e => { if (!loading) e.currentTarget.style.background = '#4338ca'; }}
+                            onMouseOut={e => { if (!loading) e.currentTarget.style.background = '#4f46e5'; }}>
+                        {loading ? 'Creating account...' : 'Create Account'}
+                    </button>
+
+                    <p style={{ textAlign: 'center', color: '#64748b', fontSize: 14, marginTop: 20 }}>
+                        Have an account?{' '}
+                        <Link href="/login" style={{ color: '#4f46e5', fontWeight: 500, textDecoration: 'none' }}>
+                            Sign in
+                        </Link>
+                    </p>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+function Field({ label, type = 'text', value, onChange, placeholder }: {
+    label: string; type?: string; value: string;
+    onChange: (v: string) => void; placeholder: string;
+}) {
+    return (
+        <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', color: '#334155', fontSize: 13, fontWeight: 500, marginBottom: 6 }}>
+                {label}
+            </label>
+            <input value={value} onChange={e => onChange(e.target.value)}
+                   type={type} placeholder={placeholder} required
+                   style={{
+                       width: '100%',
+                       background: '#f8fafc',
+                       border: '1px solid #e5e7eb',
+                       borderRadius: 10,
+                       padding: '11px 14px',
+                       fontSize: 14,
+                       color: '#0f172a',
+                       transition: 'border-color 0.15s, background 0.15s'
+                   }}
+                   onFocus={e => {
+                       e.currentTarget.style.borderColor = '#6366f1';
+                       e.currentTarget.style.background = '#ffffff';
+                   }}
+                   onBlur={e => {
+                       e.currentTarget.style.borderColor = '#e5e7eb';
+                       e.currentTarget.style.background = '#f8fafc';
+                   }} />
         </div>
     );
 }

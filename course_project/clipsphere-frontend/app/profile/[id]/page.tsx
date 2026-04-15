@@ -20,10 +20,10 @@ interface Video {
     description?: string;
     duration: number;
     viewsCount: number;
-    likesCount?: number;
+    likesCount: number;
+    avgRating?: number;
     reviewCount?: number;
     playbackUrl: string;
-    avgRating?: number;
     owner?: { _id: string; username: string };
 }
 
@@ -46,7 +46,7 @@ export default function ProfilePage() {
                     api.get(`/users/${id}/profile`),
                     api.get(`/users/${id}/followers`),
                     api.get(`/users/${id}/following`),
-                    api.get(`/videos?owner=${id}&limit=12&skip=0`)
+                    api.get(`/videos?owner=${id}&limit=20&skip=0`)
                 ];
 
                 if (user) {
@@ -95,80 +95,137 @@ export default function ProfilePage() {
         }
     };
 
-    if (loading) return (
-        <div className="min-h-screen">
-            <NavBar />
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"/>
+    if (loading) {
+        return (
+            <div className="min-h-screen" style={{ background: '#f8fafc' }}>
+                <NavBar />
+                <div className="flex items-center justify-center h-64">
+                    <div className="animate-spin" style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid #e0e7ff', borderTopColor: '#4f46e5' }} />
+                </div>
             </div>
-        </div>
-    );
+        );
+    }
 
-    if (!profile) return (
-        <div className="min-h-screen">
-            <NavBar />
-            <div className="flex items-center justify-center h-64 text-gray-400">User not found</div>
-        </div>
-    );
+    if (!profile) {
+        return (
+            <div className="min-h-screen" style={{ background: '#f8fafc' }}>
+                <NavBar />
+                <div className="flex items-center justify-center h-64" style={{ color: '#64748b' }}>
+                    User not found
+                </div>
+            </div>
+        );
+    }
 
     const isSelf = user && user._id === id;
 
     return (
-        <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #020617 0%, #0f172a 100%)' }}>
+        <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)' }}>
             <NavBar />
-            <div className="max-w-6xl mx-auto px-4 py-8">
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8">
-                    <div className="flex items-start justify-between gap-5 flex-wrap">
-                        <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-2xl font-bold">
+
+            <div className="max-w-6xl mx-auto px-4 py-10">
+                <section
+                    style={{
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 24,
+                        padding: 28,
+                        boxShadow: '0 18px 48px rgba(15, 23, 42, 0.06)'
+                    }}
+                >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                            <div
+                                style={{
+                                    width: 76,
+                                    height: 76,
+                                    borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, #0f172a, #4f46e5)',
+                                    color: '#fff',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 30,
+                                    fontWeight: 800
+                                }}
+                            >
                                 {profile.username[0].toUpperCase()}
                             </div>
+
                             <div>
-                                <h1 className="text-2xl font-bold">@{profile.username}</h1>
-                                {profile.bio && <p className="text-gray-400 text-sm mt-1">{profile.bio}</p>}
-                                <div className="flex gap-4 text-sm text-slate-400 mt-3 flex-wrap">
-                                    <span>{videos.length} videos</span>
-                                    <span>{followersCount} followers</span>
-                                    <span>{followingCount} following</span>
+                                <h1 style={{ color: '#0f172a', fontSize: 28, fontWeight: 800, margin: 0 }}>
+                                    @{profile.username}
+                                </h1>
+                                {profile.bio && (
+                                    <p style={{ color: '#64748b', fontSize: 15, margin: '8px 0 0 0', maxWidth: 560 }}>
+                                        {profile.bio}
+                                    </p>
+                                )}
+                                <div style={{ display: 'flex', gap: 20, marginTop: 14, flexWrap: 'wrap' }}>
+                                    <span style={{ color: '#334155', fontSize: 14, fontWeight: 600 }}>{videos.length} videos</span>
+                                    <span style={{ color: '#334155', fontSize: 14, fontWeight: 600 }}>{followersCount} followers</span>
+                                    <span style={{ color: '#334155', fontSize: 14, fontWeight: 600 }}>{followingCount} following</span>
                                 </div>
                             </div>
                         </div>
-                        <div className="flex gap-2">
+
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                             {isSelf && (
-                                <Link href="/settings" className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-xl text-sm transition-colors">
+                                <Link
+                                    href="/settings"
+                                    style={{
+                                        background: '#f8fafc',
+                                        border: '1px solid #e2e8f0',
+                                        color: '#334155',
+                                        padding: '10px 18px',
+                                        borderRadius: 12,
+                                        fontSize: 14,
+                                        fontWeight: 700,
+                                        textDecoration: 'none'
+                                    }}
+                                >
                                     Settings
                                 </Link>
                             )}
                             {user && !isSelf && (
-                                <button onClick={handleFollow}
+                                <button
+                                    onClick={handleFollow}
                                     disabled={busy}
-                                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                                        following
-                                            ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                    }`}>
+                                    style={{
+                                        background: following ? '#f8fafc' : '#0f172a',
+                                        border: '1px solid #e2e8f0',
+                                        color: following ? '#334155' : '#ffffff',
+                                        padding: '10px 18px',
+                                        borderRadius: 12,
+                                        fontSize: 14,
+                                        fontWeight: 700,
+                                        opacity: busy ? 0.7 : 1
+                                    }}
+                                >
                                     {busy ? 'Working...' : following ? 'Unfollow' : 'Follow'}
                                 </button>
                             )}
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <div className="mt-8">
-                    <div className="flex items-center justify-between gap-4 flex-wrap mb-5">
-                        <h2 className="text-xl font-semibold">Videos by @{profile.username}</h2>
-                        <span className="text-sm text-slate-400">{videos.length} public videos</span>
+                <section style={{ marginTop: 28 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+                        <h2 style={{ color: '#0f172a', fontSize: 22, fontWeight: 800, margin: 0 }}>
+                            Videos by @{profile.username}
+                        </h2>
                     </div>
+
                     {videos.length === 0 ? (
-                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-10 text-center text-slate-400">
+                        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 24, padding: '36px 24px', textAlign: 'center', color: '#64748b' }}>
                             No public videos yet.
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                             {videos.map((video) => <VideoCard key={video._id} video={video} />)}
                         </div>
                     )}
-                </div>
+                </section>
             </div>
         </div>
     );

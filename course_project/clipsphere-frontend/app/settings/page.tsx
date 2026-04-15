@@ -43,10 +43,12 @@ export default function SettingsPage() {
     };
 
     if (loading) return (
-        <div className="min-h-screen">
+        <div className="min-h-screen" style={{ background: '#f7f8fa' }}>
             <NavBar />
             <div className="flex items-center justify-center h-64">
-                <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"/>
+                <div className="animate-spin"
+                     style={{ width: 32, height: 32, borderRadius: '50%',
+                              border: '3px solid #e0e7ff', borderTopColor: '#4f46e5' }} />
             </div>
         </div>
     );
@@ -54,29 +56,80 @@ export default function SettingsPage() {
     const notifKeys: NotifKey[] = ['followers', 'comments', 'likes', 'tips'];
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen" style={{ background: '#f7f8fa' }}>
             <NavBar />
-            <div className="max-w-lg mx-auto px-4 py-8">
-                <h1 className="text-2xl font-bold mb-6">Notification Settings</h1>
+            <div className="max-w-lg mx-auto px-4 py-10">
+                <h1 style={{ color: '#0f172a', fontSize: 24, fontWeight: 700, marginBottom: 24 }}>
+                    Notification Settings
+                </h1>
+
                 {(['inApp', 'email'] as NotifType[]).map(type => (
-                    <div key={type} className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mb-4">
-                        <h2 className="font-semibold mb-4 text-indigo-400">
-                            {type === 'inApp' ? '🔔 In-App Alerts' : '📧 Email Alerts'}
+                    <div key={type}
+                         style={{
+                             background: '#ffffff',
+                             border: '1px solid #e5e7eb',
+                             borderRadius: 12,
+                             padding: 20,
+                             marginBottom: 16
+                         }}>
+                        <h2 style={{
+                                color: '#0f172a',
+                                fontSize: 15,
+                                fontWeight: 600,
+                                marginBottom: 14
+                             }}>
+                            {type === 'inApp' ? 'In-App Alerts' : 'Email Alerts'}
                         </h2>
-                        {notifKeys.map(k => (
-                            <div key={k} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
-                                <span className="text-sm capitalize">{k}</span>
+                        {notifKeys.map((k, i) => (
+                            <div key={k}
+                                 style={{
+                                     display: 'flex',
+                                     justifyContent: 'space-between',
+                                     alignItems: 'center',
+                                     padding: '10px 0',
+                                     borderBottom: i < notifKeys.length - 1 ? '1px solid #f1f5f9' : 'none'
+                                 }}>
+                                <span style={{ color: '#334155', fontSize: 14, textTransform: 'capitalize' }}>{k}</span>
                                 <button onClick={() => toggle(type, k)}
-                                    className={`w-11 h-6 rounded-full transition-colors relative ${prefs[type][k] ? 'bg-indigo-600' : 'bg-gray-700'}`}>
-                                    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${prefs[type][k] ? 'translate-x-6' : 'translate-x-1'}`}/>
+                                        style={{
+                                            width: 42,
+                                            height: 24,
+                                            borderRadius: 999,
+                                            background: prefs[type][k] ? '#4f46e5' : '#cbd5e1',
+                                            border: 'none',
+                                            position: 'relative',
+                                            transition: 'background 0.2s'
+                                        }}>
+                                    <span style={{
+                                              position: 'absolute',
+                                              top: 2,
+                                              left: prefs[type][k] ? 20 : 2,
+                                              width: 20,
+                                              height: 20,
+                                              background: '#ffffff',
+                                              borderRadius: '50%',
+                                              transition: 'left 0.2s',
+                                              boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                          }} />
                                 </button>
                             </div>
                         ))}
                     </div>
                 ))}
+
                 <button onClick={handleSave}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 py-3 rounded-xl font-semibold transition-colors">
-                    {saved ? '✓ Saved!' : 'Save Settings'}
+                        style={{
+                            width: '100%',
+                            background: saved ? '#059669' : '#4f46e5',
+                            color: '#fff',
+                            border: 'none',
+                            padding: '12px 20px',
+                            borderRadius: 10,
+                            fontSize: 15,
+                            fontWeight: 600,
+                            transition: 'background 0.2s'
+                        }}>
+                    {saved ? 'Saved' : 'Save Settings'}
                 </button>
             </div>
         </div>

@@ -33,7 +33,7 @@ export default function UploadPage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Upload failed');
             setProgress('Upload complete!');
-            setTimeout(() => router.push('/feed'), 1000);
+            setTimeout(() => router.push('/feed'), 800);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'Upload failed');
             setProgress('');
@@ -43,49 +43,160 @@ export default function UploadPage() {
     };
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen" style={{ background: '#f7f8fa' }}>
             <NavBar />
-            <div className="max-w-xl mx-auto px-4 py-8">
-                <h1 className="text-2xl font-bold mb-6">Upload Video</h1>
-                <form onSubmit={handleSubmit} className="bg-gray-900 border border-gray-800 p-6 rounded-2xl space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Title</label>
-                        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Give your video a title"
-                            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors" required />
+            <div className="max-w-xl mx-auto px-4 py-10">
+                <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', marginBottom: 24 }}>
+                    Upload Video
+                </h1>
+
+                <form onSubmit={handleSubmit}
+                      style={{
+                          background: '#ffffff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: 16,
+                          padding: 28,
+                          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)'
+                      }}>
+                    <div style={{ marginBottom: 18 }}>
+                        <label style={labelStyle}>Title</label>
+                        <input value={title} onChange={e => setTitle(e.target.value)}
+                               placeholder="Give your video a title"
+                               required
+                               style={inputStyle}
+                               onFocus={e => focusStyle(e, true)}
+                               onBlur={e => focusStyle(e, false)} />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Description (optional)</label>
-                        <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe your video"
-                            className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm h-20 resize-none focus:outline-none focus:border-indigo-500 transition-colors" />
+
+                    <div style={{ marginBottom: 18 }}>
+                        <label style={labelStyle}>Description <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional)</span></label>
+                        <textarea value={description} onChange={e => setDescription(e.target.value)}
+                                  placeholder="Describe your video"
+                                  style={{ ...inputStyle, height: 88, resize: 'none' }}
+                                  onFocus={e => focusStyle(e, true)}
+                                  onBlur={e => focusStyle(e, false)} />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Video File</label>
+
+                    <div style={{ marginBottom: 18 }}>
+                        <label style={labelStyle}>Video File</label>
                         <label htmlFor="video-input"
-                            className="block border-2 border-dashed border-gray-700 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-500 transition-colors">
-                            <input type="file" accept="video/mp4" onChange={e => setFile(e.target.files?.[0] || null)}
-                                className="hidden" id="video-input" />
+                               style={{
+                                   display: 'block',
+                                   border: '2px dashed #cbd5e1',
+                                   background: '#f8fafc',
+                                   borderRadius: 12,
+                                   padding: 24,
+                                   textAlign: 'center',
+                                   cursor: 'pointer',
+                                   transition: 'border-color 0.15s, background 0.15s'
+                               }}
+                               onMouseOver={e => {
+                                   e.currentTarget.style.borderColor = '#6366f1';
+                                   e.currentTarget.style.background = '#eef2ff';
+                               }}
+                               onMouseOut={e => {
+                                   e.currentTarget.style.borderColor = '#cbd5e1';
+                                   e.currentTarget.style.background = '#f8fafc';
+                               }}>
+                            <input type="file" accept="video/mp4"
+                                   onChange={e => setFile(e.target.files?.[0] || null)}
+                                   style={{ display: 'none' }} id="video-input" />
                             {file ? (
                                 <div>
-                                    <p className="text-white font-medium">{file.name}</p>
-                                    <p className="text-gray-400 text-xs mt-1">{(file.size / 1024 / 1024).toFixed(1)} MB</p>
+                                    <p style={{ color: '#0f172a', fontSize: 15, fontWeight: 500, margin: 0 }}>{file.name}</p>
+                                    <p style={{ color: '#64748b', fontSize: 13, margin: '4px 0 0 0' }}>
+                                        {(file.size / 1024 / 1024).toFixed(1)} MB
+                                    </p>
                                 </div>
                             ) : (
                                 <div>
-                                    <p className="text-4xl mb-2">🎬</p>
-                                    <p className="text-gray-400 text-sm">Click to select MP4 video</p>
-                                    <p className="text-gray-600 text-xs mt-1">Max 5 minutes · Max 100 MB</p>
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+                                         stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                                         style={{ display: 'block', margin: '0 auto 10px' }}>
+                                        <path d="M15 10l4.553-2.277A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+                                    </svg>
+                                    <p style={{ color: '#334155', fontSize: 14, margin: 0, fontWeight: 500 }}>
+                                        Click to select an MP4 file
+                                    </p>
+                                    <p style={{ color: '#94a3b8', fontSize: 12, margin: '4px 0 0 0' }}>
+                                        Max 5 minutes · Max 100 MB
+                                    </p>
                                 </div>
                             )}
                         </label>
                     </div>
-                    {error && <p className="text-red-400 text-sm bg-red-400/10 px-3 py-2 rounded-lg">{error}</p>}
-                    {progress && <p className="text-green-400 text-sm text-center">{progress}</p>}
+
+                    {error && (
+                        <div style={{
+                                background: '#fef2f2',
+                                border: '1px solid #fecaca',
+                                color: '#b91c1c',
+                                padding: '10px 14px',
+                                borderRadius: 8,
+                                fontSize: 14,
+                                marginBottom: 12
+                             }}>
+                            {error}
+                        </div>
+                    )}
+
+                    {progress && (
+                        <div style={{
+                                background: '#ecfdf5',
+                                border: '1px solid #a7f3d0',
+                                color: '#047857',
+                                padding: '10px 14px',
+                                borderRadius: 8,
+                                fontSize: 14,
+                                textAlign: 'center',
+                                marginBottom: 12
+                             }}>
+                            {progress}
+                        </div>
+                    )}
+
                     <button type="submit" disabled={uploading || !file || !title}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 py-3 rounded-xl font-semibold transition-colors">
+                            style={{
+                                width: '100%',
+                                background: uploading || !file || !title ? '#a5b4fc' : '#4f46e5',
+                                color: '#fff',
+                                border: 'none',
+                                padding: '12px 20px',
+                                borderRadius: 10,
+                                fontSize: 15,
+                                fontWeight: 600,
+                                opacity: uploading || !file || !title ? 0.7 : 1
+                            }}
+                            onMouseOver={e => { if (!(uploading || !file || !title)) e.currentTarget.style.background = '#4338ca'; }}
+                            onMouseOut={e => { if (!(uploading || !file || !title)) e.currentTarget.style.background = '#4f46e5'; }}>
                         {uploading ? 'Processing...' : 'Upload Video'}
                     </button>
                 </form>
             </div>
         </div>
     );
+}
+
+const labelStyle: React.CSSProperties = {
+    display: 'block',
+    color: '#334155',
+    fontSize: 13,
+    fontWeight: 500,
+    marginBottom: 6
+};
+
+const inputStyle: React.CSSProperties = {
+    width: '100%',
+    background: '#f8fafc',
+    border: '1px solid #e5e7eb',
+    borderRadius: 10,
+    padding: '11px 14px',
+    fontSize: 14,
+    color: '#0f172a',
+    transition: 'border-color 0.15s, background 0.15s'
+};
+
+function focusStyle(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>, focused: boolean) {
+    e.currentTarget.style.borderColor = focused ? '#6366f1' : '#e5e7eb';
+    e.currentTarget.style.background = focused ? '#ffffff' : '#f8fafc';
 }

@@ -27,8 +27,8 @@ interface Video {
     duration: number;
     viewsCount: number;
     likesCount: number;
-    reviewCount: number;
     avgRating: number;
+    reviewCount: number;
     userLiked: boolean;
     playbackUrl: string;
     owner?: { _id: string; username: string };
@@ -37,6 +37,30 @@ interface Video {
         rating: number;
         comment: string;
     } | null;
+}
+
+function RatingStars({ rating }: { rating: number }) {
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ display: 'flex', gap: 2 }}>
+                {[1, 2, 3, 4, 5].map((score) => {
+                    const filled = score <= rating;
+                    return (
+                        <svg key={score} width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                            <path
+                                d="m12 3.6 2.61 5.29 5.84.85-4.22 4.11 1 5.81L12 16.92 6.77 19.66l1-5.81-4.22-4.11 5.84-.85L12 3.6Z"
+                                fill={filled ? '#f59e0b' : 'none'}
+                                stroke={filled ? '#f59e0b' : '#cbd5e1'}
+                                strokeWidth="1.5"
+                                strokeLinejoin="round"
+                            />
+                        </svg>
+                    );
+                })}
+            </div>
+            <span style={{ color: '#94a3b8', marginLeft: 6 }}>{rating}/5</span>
+        </div>
+    );
 }
 
 export default function VideoDetailPage() {
@@ -52,8 +76,8 @@ export default function VideoDetailPage() {
         try {
             const res = await api.get(`/videos/${id}`);
             setVideo(res.data.video || null);
-        } catch (e) {
-            console.error(e);
+        } catch (error) {
+            console.error(error);
             setVideo(null);
         } finally {
             setLoading(false);
@@ -72,7 +96,7 @@ export default function VideoDetailPage() {
         try {
             const res = await api.post(`/videos/${id}/view`, {});
             setVideo((current) => current ? { ...current, viewsCount: res.data.viewsCount } : current);
-        } catch (error) {
+        } catch {
             viewedRef.current = false;
         }
     };
@@ -104,72 +128,106 @@ export default function VideoDetailPage() {
         try {
             await api.delete(`/videos/${id}`);
             router.push('/feed');
-        } catch (e: unknown) {
-            alert(e instanceof Error ? e.message : 'Delete failed');
+        } catch (error) {
+            alert(error instanceof Error ? error.message : 'Delete failed');
         }
     };
 
-    if (loading) return (
-        <div className="min-h-screen">
-            <NavBar />
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"/>
+    if (loading) {
+        return (
+            <div className="min-h-screen" style={{ background: '#f8fafc' }}>
+                <NavBar />
+                <div className="flex items-center justify-center h-64">
+                    <div className="animate-spin" style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid #e0e7ff', borderTopColor: '#4f46e5' }} />
+                </div>
             </div>
-        </div>
-    );
+        );
+    }
 
-    if (!video) return (
-        <div className="min-h-screen">
-            <NavBar />
-            <div className="flex items-center justify-center h-64 text-gray-400">
-                Video not found
+    if (!video) {
+        return (
+            <div className="min-h-screen" style={{ background: '#f8fafc' }}>
+                <NavBar />
+                <div className="flex items-center justify-center h-64" style={{ color: '#64748b' }}>
+                    Video not found
+                </div>
             </div>
-        </div>
-    );
+        );
+    }
 
     const ownerId = video.owner?._id || '';
     const ownerName = video.owner?.username || 'Unknown';
     const isOwner = Boolean(user && ownerId && user._id === ownerId);
 
     return (
-        <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #020617 0%, #0f172a 100%)' }}>
+        <div className="min-h-screen" style={{ background: 'linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)' }}>
             <NavBar />
-            <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+            <div className="max-w-6xl mx-auto px-4 py-8">
                 <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)] gap-6">
-                    <section className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
+                    <section
+                        style={{
+                            background: '#ffffff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: 24,
+                            padding: 20,
+                            boxShadow: '0 18px 48px rgba(15, 23, 42, 0.06)'
+                        }}
+                    >
                         <VideoPlayer url={video.playbackUrl} />
 
-                        <div className="flex items-start justify-between gap-4 mt-5 flex-wrap">
-                            <div className="flex-1 min-w-0">
-                                <h1 className="text-2xl font-bold">{video.title}</h1>
-                                <div className="flex items-center gap-3 mt-2 flex-wrap text-sm text-slate-400">
-                                    <Link href={`/profile/${ownerId}`} className="text-indigo-400 hover:underline">
+                        <div style={{ marginTop: 20, display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <h1 style={{ color: '#0f172a', fontSize: 28, fontWeight: 800, margin: 0 }}>
+                                    {video.title}
+                                </h1>
+                                <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', marginTop: 10 }}>
+                                    <Link href={`/profile/${ownerId}`} style={{ color: '#4f46e5', fontSize: 15, fontWeight: 700, textDecoration: 'none' }}>
                                         @{ownerName}
                                     </Link>
-                                    <span>{video.viewsCount} views</span>
-                                    <span>{video.likesCount} likes</span>
-                                    <span>{video.reviewCount} reviews</span>
-                                    {video.avgRating ? <span>{video.avgRating.toFixed(1)}★</span> : null}
+                                    <span style={{ color: '#64748b', fontSize: 14 }}>{video.viewsCount} views</span>
+                                    <span style={{ color: '#64748b', fontSize: 14 }}>{video.likesCount} likes</span>
+                                    <span style={{ color: '#64748b', fontSize: 14 }}>
+                                        {video.reviewCount} reviews{video.avgRating ? ` | ${video.avgRating.toFixed(1)}/5` : ''}
+                                    </span>
                                 </div>
                                 {video.description && (
-                                    <p className="text-gray-300 text-sm mt-3 leading-6">{video.description}</p>
+                                    <p style={{ color: '#475569', fontSize: 15, lineHeight: 1.7, marginTop: 14 }}>
+                                        {video.description}
+                                    </p>
                                 )}
                             </div>
-                            <div className="flex gap-2 flex-shrink-0 flex-wrap">
+
+                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                                 <button
                                     onClick={handleLike}
                                     disabled={!user || likeBusy}
-                                    className={`px-4 py-2 rounded-xl text-sm transition-colors ${
-                                        video.userLiked
-                                            ? 'bg-indigo-600 text-white'
-                                            : 'bg-gray-800 hover:bg-gray-700 text-white'
-                                    } disabled:opacity-50`}
+                                    style={{
+                                        background: video.userLiked ? '#eef2ff' : '#ffffff',
+                                        border: `1px solid ${video.userLiked ? '#a5b4fc' : '#e2e8f0'}`,
+                                        color: video.userLiked ? '#4338ca' : '#334155',
+                                        padding: '10px 16px',
+                                        borderRadius: 12,
+                                        fontSize: 14,
+                                        fontWeight: 700,
+                                        opacity: !user ? 0.6 : 1
+                                    }}
                                 >
-                                    {video.userLiked ? 'Liked' : 'Like'} • {video.likesCount}
+                                    {video.userLiked ? 'Liked' : 'Like'} | {video.likesCount}
                                 </button>
                                 {isOwner && (
-                                    <button onClick={handleDelete}
-                                        className="bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-600/30 px-3 py-2 rounded-xl text-sm transition-colors">
+                                    <button
+                                        onClick={handleDelete}
+                                        style={{
+                                            background: '#fef2f2',
+                                            border: '1px solid #fecaca',
+                                            color: '#b91c1c',
+                                            padding: '10px 16px',
+                                            borderRadius: 12,
+                                            fontSize: 14,
+                                            fontWeight: 700
+                                        }}
+                                    >
                                         Delete
                                     </button>
                                 )}
@@ -177,32 +235,52 @@ export default function VideoDetailPage() {
                         </div>
                     </section>
 
-                    <aside className="space-y-4">
-                        <section className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
-                            <h2 className="text-lg font-semibold">Video Stats</h2>
-                            <div className="grid grid-cols-2 gap-3 mt-4">
+                    <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <section
+                            style={{
+                                background: '#ffffff',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: 24,
+                                padding: 20
+                            }}
+                        >
+                            <h2 style={{ color: '#0f172a', fontSize: 18, fontWeight: 800, margin: 0 }}>
+                                Video Stats
+                            </h2>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12, marginTop: 16 }}>
                                 {[
                                     { label: 'Views', value: String(video.viewsCount) },
                                     { label: 'Likes', value: String(video.likesCount) },
                                     { label: 'Reviews', value: String(video.reviewCount) },
-                                    { label: 'Rating', value: video.avgRating ? `${video.avgRating.toFixed(1)}★` : 'New' }
+                                    { label: 'Rating', value: video.avgRating ? `${video.avgRating.toFixed(1)}/5` : 'New' }
                                 ].map((item) => (
-                                    <div key={item.label} className="bg-slate-950 border border-slate-800 rounded-2xl p-4">
-                                        <div className="text-xs uppercase tracking-wide text-slate-500">{item.label}</div>
-                                        <div className="text-lg font-semibold mt-2">{item.value}</div>
+                                    <div key={item.label} style={{ background: '#f8fafc', borderRadius: 16, padding: '14px 16px' }}>
+                                        <div style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                                            {item.label}
+                                        </div>
+                                        <div style={{ color: '#0f172a', fontSize: 18, fontWeight: 800, marginTop: 4 }}>
+                                            {item.value}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         </section>
 
-                        <section className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
-                            <h2 className="text-lg font-semibold">
+                        <section
+                            style={{
+                                background: '#ffffff',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: 24,
+                                padding: 20
+                            }}
+                        >
+                            <h2 style={{ color: '#0f172a', fontSize: 18, fontWeight: 800, margin: 0 }}>
                                 {video.myReview ? 'Edit Your Review' : 'Leave a Review'}
                             </h2>
-                            <p className="text-sm text-slate-400 mt-2 mb-4">
+                            <p style={{ color: '#64748b', fontSize: 14, margin: '8px 0 16px 0' }}>
                                 {video.myReview
                                     ? 'You already reviewed this video. Update it here.'
-                                    : 'Share feedback so other viewers know what to watch.'}
+                                    : 'Share feedback so other users can decide what to watch.'}
                             </p>
                             {user ? (
                                 <ReviewForm
@@ -211,39 +289,67 @@ export default function VideoDetailPage() {
                                     onReviewSaved={loadVideo}
                                 />
                             ) : (
-                                <p className="text-gray-400 text-sm">
-                                    <Link href="/login" className="text-indigo-400 hover:underline">Sign in</Link> to leave a review.
+                                <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>
+                                    <Link href="/login" style={{ color: '#4f46e5', fontWeight: 700, textDecoration: 'none' }}>
+                                        Sign in
+                                    </Link>{' '}
+                                    to leave a review.
                                 </p>
                             )}
                         </section>
                     </aside>
                 </div>
 
-                <section className="bg-slate-900 border border-slate-800 rounded-3xl p-5">
-                    <div className="flex items-center justify-between gap-4 flex-wrap">
-                        <h2 className="text-xl font-semibold">Community Reviews</h2>
-                        <span className="text-sm text-slate-400">{video.reviewCount} total</span>
+                <section
+                    style={{
+                        marginTop: 24,
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 24,
+                        padding: 24
+                    }}
+                >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                        <h2 style={{ color: '#0f172a', fontSize: 22, fontWeight: 800, margin: 0 }}>
+                            Community Reviews
+                        </h2>
+                        <span style={{ color: '#64748b', fontSize: 14 }}>
+                            {video.reviewCount} total
+                        </span>
                     </div>
 
                     {video.reviews.length === 0 ? (
-                        <p className="text-slate-400 text-sm mt-5">No reviews yet.</p>
+                        <p style={{ color: '#64748b', fontSize: 14, margin: '16px 0 0 0' }}>
+                            No reviews yet.
+                        </p>
                     ) : (
-                        <div className="space-y-4 mt-5">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 18 }}>
                             {video.reviews.map((review) => (
-                                <article key={review._id} className="bg-slate-950 border border-slate-800 rounded-2xl p-4">
-                                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                                <article
+                                    key={review._id}
+                                    style={{
+                                        background: '#f8fafc',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: 18,
+                                        padding: 16
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
                                         <div>
-                                            <div className="font-medium">@{review.user.username}</div>
-                                            <div className="text-amber-400 text-sm mt-1">
-                                                {'★'.repeat(review.rating)}
-                                                <span className="text-slate-400 ml-2">{review.rating}/5</span>
+                                            <div style={{ color: '#0f172a', fontSize: 15, fontWeight: 700 }}>
+                                                @{review.user.username}
+                                            </div>
+                                            <div style={{ marginTop: 4 }}>
+                                                <RatingStars rating={review.rating} />
                                             </div>
                                         </div>
-                                        <div className="text-xs text-slate-500">
+                                        <div style={{ color: '#94a3b8', fontSize: 13 }}>
                                             {new Date(review.createdAt).toLocaleString()}
                                         </div>
                                     </div>
-                                    <p className="text-sm text-gray-300 mt-3 leading-6">{review.comment}</p>
+                                    <p style={{ color: '#475569', fontSize: 14, lineHeight: 1.65, margin: '12px 0 0 0' }}>
+                                        {review.comment}
+                                    </p>
                                 </article>
                             ))}
                         </div>

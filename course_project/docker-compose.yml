@@ -60,9 +60,9 @@ services:
       REDIS_PORT: 6379
       SMTP_HOST: smtp.ethereal.email
       SMTP_PORT: 587
-      SMTP_USER: ""
-      SMTP_PASS: ""
-      SMTP_FROM: noreply@clipsphere.local
+      SMTP_USER: kenyon97@ethereal.email
+      SMTP_PASS: JjFWSKQgweP6PyVMwG
+      SMTP_FROM: kenyon97@ethereal.email
     depends_on:
       - mongodb
       - minio
@@ -80,9 +80,9 @@ services:
       REDIS_PORT: 6379
       SMTP_HOST: smtp.ethereal.email
       SMTP_PORT: 587
-      SMTP_USER: ""
-      SMTP_PASS: ""
-      SMTP_FROM: noreply@clipsphere.local
+      SMTP_USER: kenyon97@ethereal.email
+      SMTP_PASS: JjFWSKQgweP6PyVMwG
+      SMTP_FROM: kenyon97@ethereal.email
     depends_on:
       - redis
 
