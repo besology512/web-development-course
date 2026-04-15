@@ -1,4 +1,5 @@
 const uploadService = require('../services/uploadService');
+const videoService = require('../services/videoService');
 const Video = require('../models/Video');
 
 exports.uploadVideo = async (req, res, next) => {
@@ -26,6 +27,8 @@ exports.uploadVideo = async (req, res, next) => {
             videoURL: key,
             duration: Math.floor(duration)
         });
+
+        await videoService.invalidateTrendingCache();
 
         res.status(201).json({ status: 'success', data: { video } });
     } catch (err) {

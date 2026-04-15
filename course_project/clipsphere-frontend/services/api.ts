@@ -7,11 +7,17 @@ export function getToken(): string | null {
 
 export function setToken(token: string) {
     localStorage.setItem('token', token);
+    if (typeof document !== 'undefined') {
+        document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
+    }
 }
 
 export function clearToken() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    if (typeof document !== 'undefined') {
+        document.cookie = 'token=; path=/; max-age=0; SameSite=Lax';
+    }
 }
 
 async function request(path: string, options: RequestInit = {}) {
@@ -23,7 +29,7 @@ async function request(path: string, options: RequestInit = {}) {
         headers['Content-Type'] = 'application/json';
     }
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await fetch(`${BASE}${path}`, { ...options, headers });
+    const res = await fetch(`${BASE}${path}`, { ...options, headers, cache: 'no-store' });
     if (!res.ok) {
         const err = await res.json().catch(() => ({ message: 'Request failed' }));
         throw new Error(err.message || 'Request failed');

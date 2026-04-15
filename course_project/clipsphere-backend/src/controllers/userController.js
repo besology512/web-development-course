@@ -1,5 +1,7 @@
 const userService = require('../services/userService');
 const { z } = require('zod');
+let emailQueue;
+try { emailQueue = require('../queues/emailQueue'); } catch (e) {}
 
 exports.getMe = (req, res) => {
     res.status(200).json({
@@ -50,6 +52,13 @@ exports.getUser = async (req, res, next) => {
 exports.followUser = async (req, res, next) => {
     try {
         const result = await userService.followUser(req.user.id, req.params.id);
+
+        if (result.notificationPlan?.queueEmail && result.targetUserEmail && emailQueue) {
+            emailQueue.add('sendEngagement', {
+                to: result.targetUserEmail,
+                message: `@${req.user.username} followed you on ClipSphere.`
+            }).catch(() => {});
+        }
 
         res.status(201).json({
             status: 'success',

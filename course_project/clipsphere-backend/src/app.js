@@ -13,7 +13,6 @@ const userRoutes = require('./routes/userRoutes');
 const videoRoutes = require('./routes/videoRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const adminRoutes = require('./routes/adminRoutes');
-const tipRoutes = require('./routes/tipRoutes');
 const rateLimit = require('express-rate-limit');
 
 dotenv.config();
@@ -26,9 +25,6 @@ app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:3000',
     credentials: true
 }));
-
-// Raw body for Stripe webhook (must be before express.json)
-app.use('/api/v1/tips/webhook', express.raw({ type: 'application/json' }));
 
 app.use(express.json()); // Body parser
 app.use(mongoSanitize()); // Data sanitization against NoSQL query injection
@@ -72,6 +68,7 @@ const swaggerOptions = {
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Routes
 app.use('/api/v1/auth', authRoutes);
@@ -79,7 +76,6 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/videos', videoRoutes);
 app.use('/api/v1/videos', uploadRoutes);
 app.use('/api/v1/admin', adminRoutes);
-app.use('/api/v1/tips', tipRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {

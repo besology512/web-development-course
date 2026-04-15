@@ -34,7 +34,16 @@ exports.getPresignedUrl = async (key) => {
         Bucket: process.env.MINIO_BUCKET,
         Key: key
     });
-    return getSignedUrl(s3, cmd, { expiresIn: 3600 });
+    const url = await getSignedUrl(s3, cmd, { expiresIn: 3600 });
+    const internalBase = `http://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}`;
+    const publicBase = process.env.MINIO_PUBLIC_BASE || 'http://localhost:9000';
+    return url.replace(internalBase, publicBase);
+};
+
+exports.getPublicUrl = (key) => {
+    const publicBase = process.env.MINIO_PUBLIC_BASE || 'http://localhost:9000';
+    const encodedKey = encodeURIComponent(key).replace(/%2F/g, '/');
+    return `${publicBase}/${process.env.MINIO_BUCKET}/${encodedKey}`;
 };
 
 exports.deleteFromMinio = async (key) => {

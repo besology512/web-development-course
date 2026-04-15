@@ -1,6 +1,6 @@
 const express = require('express');
 const videoController = require('../controllers/videoController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, attachUserIfPresent } = require('../middleware/authMiddleware');
 const { videoOwnership, videoDeletePermission } = require('../middleware/ownershipMiddleware');
 
 const router = express.Router();
@@ -9,38 +9,77 @@ const router = express.Router();
  * @swagger
  * tags:
  *   name: Videos
- *   description: Video management endpoints
+ *   description: Video discovery, review, and engagement endpoints
  */
 
 /**
  * @swagger
  * /api/v1/videos:
  *   get:
- *     summary: Get all public videos
+ *     summary: Get public videos for the trending or following feeds
  *     tags: [Videos]
+ *     parameters:
+ *       - in: query
+ *         name: feed
+ *         schema:
+ *           type: string
+ *           enum: [trending, following]
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: skip
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: owner
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
- *         description: List of public videos
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                 results:
- *                   type: integer
- *                 data:
- *                   type: object
- *                   properties:
- *                     videos:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Video'
+ *         description: Video list returned
  */
-router.get('/', videoController.getAllVideos);
+router.get('/', attachUserIfPresent, videoController.getAllVideos);
 
-// Protected routes
+/**
+ * @swagger
+ * /api/v1/videos/{id}:
+ *   get:
+ *     summary: Get a single public video with reviews
+ *     tags: [Videos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Video returned
+ *       404:
+ *         description: Video not found
+ */
+router.get('/:id', attachUserIfPresent, videoController.getVideoById);
+
+/**
+ * @swagger
+ * /api/v1/videos/{id}/view:
+ *   post:
+ *     summary: Increment video view count
+ *     tags: [Videos]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: View count updated
+ */
+router.post('/:id/view', videoController.incrementViews);
+
 router.use(protect);
 
 /**
@@ -51,48 +90,9 @@ router.use(protect);
  *     tags: [Videos]
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - title
- *               - duration
- *               - videoURL
- *             properties:
- *               title:
- *                 type: string
- *                 minLength: 1
- *                 maxLength: 100
- *               description:
- *                 type: string
- *                 maxLength: 500
- *               duration:
- *                 type: number
- *                 maximum: 300
- *               videoURL:
- *                 type: string
  *     responses:
  *       201:
- *         description: Video created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     video:
- *                       $ref: '#/components/schemas/Video'
- *       400:
- *         description: Validation error
- *       401:
- *         description: Not authenticated
+ *         description: Video created
  */
 router.post('/', videoController.createVideoMetadata);
 
@@ -100,7 +100,7 @@ router.post('/', videoController.createVideoMetadata);
  * @swagger
  * /api/v1/videos/{id}:
  *   patch:
- *     summary: Update video metadata (owner only)
+ *     summary: Update a video owned by the authenticated user
  *     tags: [Videos]
  *     security:
  *       - bearerAuth: []
@@ -110,32 +110,9 @@ router.post('/', videoController.createVideoMetadata);
  *         required: true
  *         schema:
  *           type: string
- *         description: Video ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *                 minLength: 1
- *                 maxLength: 100
- *               description:
- *                 type: string
- *                 maxLength: 500
  *     responses:
  *       200:
- *         description: Video updated successfully
- *       400:
- *         description: Validation error
- *       401:
- *         description: Not authenticated
- *       403:
- *         description: Not the owner
- *       404:
- *         description: Video not found
+ *         description: Video updated
  */
 router.patch('/:id', videoOwnership, videoController.updateVideo);
 
@@ -143,7 +120,7 @@ router.patch('/:id', videoOwnership, videoController.updateVideo);
  * @swagger
  * /api/v1/videos/{id}:
  *   delete:
- *     summary: Delete a video (owner or admin)
+ *     summary: Delete a video owned by the user or by an admin
  *     tags: [Videos]
  *     security:
  *       - bearerAuth: []
@@ -153,16 +130,9 @@ router.patch('/:id', videoOwnership, videoController.updateVideo);
  *         required: true
  *         schema:
  *           type: string
- *         description: Video ID
  *     responses:
  *       204:
- *         description: Video deleted successfully
- *       401:
- *         description: Not authenticated
- *       403:
- *         description: Not authorized
- *       404:
- *         description: Video not found
+ *         description: Video deleted
  */
 router.delete('/:id', videoDeletePermission, videoController.deleteVideo);
 
@@ -180,97 +150,50 @@ router.delete('/:id', videoDeletePermission, videoController.deleteVideo);
  *         required: true
  *         schema:
  *           type: string
- *         description: Video ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - rating
- *               - comment
- *             properties:
- *               rating:
- *                 type: number
- *                 minimum: 1
- *                 maximum: 5
- *               comment:
- *                 type: string
- *                 minLength: 1
- *                 maxLength: 500
  *     responses:
  *       201:
- *         description: Review added successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     review:
- *                       $ref: '#/components/schemas/Review'
- *       400:
- *         description: Validation error or already reviewed
- *       401:
- *         description: Not authenticated
+ *         description: Review created
  */
 router.post('/:id/reviews', videoController.addReview);
-router.post('/:id/like', videoController.likeVideo);
 
 /**
  * @swagger
- * components:
- *   schemas:
- *     Video:
- *       type: object
- *       properties:
- *         _id:
+ * /api/v1/videos/{id}/reviews/me:
+ *   patch:
+ *     summary: Update the authenticated user's review for a video
+ *     tags: [Videos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
  *           type: string
- *         title:
- *           type: string
- *         description:
- *           type: string
- *         owner:
- *           type: string
- *         videoURL:
- *           type: string
- *         duration:
- *           type: number
- *         viewsCount:
- *           type: number
- *         status:
- *           type: string
- *           enum: [public, private, flagged, reported]
- *         createdAt:
- *           type: string
- *           format: date-time
- *         updatedAt:
- *           type: string
- *           format: date-time
- *     Review:
- *       type: object
- *       properties:
- *         _id:
- *           type: string
- *         rating:
- *           type: number
- *         comment:
- *           type: string
- *         user:
- *           type: string
- *         video:
- *           type: string
- *         createdAt:
- *           type: string
- *           format: date-time
- *         updatedAt:
- *           type: string
- *           format: date-time
+ *     responses:
+ *       200:
+ *         description: Review updated
  */
+router.patch('/:id/reviews/me', videoController.updateReview);
+
+/**
+ * @swagger
+ * /api/v1/videos/{id}/like:
+ *   post:
+ *     summary: Toggle like on a video
+ *     tags: [Videos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Like state updated
+ */
+router.post('/:id/like', videoController.likeVideo);
 
 module.exports = router;

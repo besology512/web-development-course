@@ -60,7 +60,7 @@ exports.updatePreferences = async (user, data) => {
 };
 
 exports.followUser = async (followerId, followingId) => {
-    const targetUser = await User.findById(followingId).select('active notifications');
+    const targetUser = await User.findById(followingId).select('active notifications email username');
     if (!targetUser || !targetUser.active) {
         const err = new Error('User not found');
         err.statusCode = 404;
@@ -75,7 +75,12 @@ exports.followUser = async (followerId, followingId) => {
         queueEmail: Boolean(targetUser.notifications?.email?.followers)
     };
 
-    return { follow, notificationPlan };
+    return {
+        follow,
+        notificationPlan,
+        targetUserEmail: targetUser.email,
+        targetUsername: targetUser.username
+    };
 };
 
 exports.unfollowUser = async (followerId, followingId) => {
