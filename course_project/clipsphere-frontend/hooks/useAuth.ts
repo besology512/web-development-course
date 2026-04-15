@@ -17,6 +17,16 @@ export function useAuth() {
 
     useEffect(() => {
         const token = localStorage.getItem('token');
+        const cachedUser = localStorage.getItem('user');
+
+        if (cachedUser) {
+            try {
+                setUser(JSON.parse(cachedUser));
+            } catch {
+                localStorage.removeItem('user');
+            }
+        }
+
         if (!token) { setLoading(false); return; }
         api.get('/users/me').then(res => {
             setUser(res.data.user);
@@ -28,7 +38,7 @@ export function useAuth() {
 
     const login = async (email: string, password: string) => {
         const res = await api.post('/auth/login', { email, password });
-        setToken(res.data.token);
+        setToken(res.token);
         setUser(res.data.user);
         localStorage.setItem('user', JSON.stringify(res.data.user));
         return res.data.user;
@@ -37,6 +47,7 @@ export function useAuth() {
     const logout = () => {
         clearToken();
         setUser(null);
+        if (typeof window !== 'undefined') window.location.href = '/login';
     };
 
     return { user, loading, login, logout };
