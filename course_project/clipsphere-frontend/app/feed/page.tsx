@@ -8,6 +8,7 @@ import VideoCard from '@/components/VideoCard';
 import SkeletonCard from '@/components/SkeletonCard';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useAuth } from '@/hooks/useAuth';
+import { useRecentActivity } from '@/hooks/useRecentActivity';
 
 interface Video {
     _id: string;
@@ -52,6 +53,7 @@ export default function FeedPage() {
     const [tab, setTab] = useState<'trending' | 'following'>('trending');
     const [viewportWidth, setViewportWidth] = useState(0);
     const { user } = useAuth();
+    const { activity } = useRecentActivity(Boolean(user), 6);
 
     useEffect(() => {
         const updateViewport = () => setViewportWidth(window.innerWidth);
@@ -119,10 +121,13 @@ export default function FeedPage() {
         { label: 'Views', value: videos.reduce((sum, video) => sum + Number(video.viewsCount || 0), 0), accent: '#94a3b8' }
     ];
 
-    const activityItems = videos.slice(0, 4).map((video) => {
+    const fallbackActivityItems = videos.slice(0, 4).map((video) => {
         const ownerName = video.owner?.username ? `@${video.owner.username}` : 'A creator';
         return `${ownerName} posted "${video.title}" with ${video.viewsCount} views and ${video.reviewCount || 0} reviews.`;
     });
+    const activityItems = activity.length > 0
+        ? activity.map((item) => item.message)
+        : fallbackActivityItems;
 
     const showLeftRail = viewportWidth >= 1024;
     const showRightRail = viewportWidth >= 1280;
@@ -143,7 +148,7 @@ export default function FeedPage() {
 
     return (
         <DashboardShell>
-            <NavBar />
+            <NavBar hasActivity={activity.length > 0} notifications={activity.map((item) => item.message)} />
 
             <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-5 md:py-8">
                 <div
@@ -452,7 +457,7 @@ export default function FeedPage() {
                                     Feed Activity
                                 </p>
                                 <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                    {(activityItems.length > 0 ? activityItems : ['Load a few videos and this panel will summarize recent feed activity.']).slice(0, 4).map((item, index) => (
+                                    {(activityItems.length > 0 ? activityItems : ['Recent follows, likes, reviews, and uploads will show up here once activity is available.']).slice(0, 4).map((item, index) => (
                                         <div
                                             key={`${item}-${index}`}
                                             style={{

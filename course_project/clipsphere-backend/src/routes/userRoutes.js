@@ -139,6 +139,27 @@ router.use(protect);
 
 /**
  * @swagger
+ * /api/v1/users/me/activity:
+ *   get:
+ *     summary: Get recent activity related to the authenticated user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Recent activity list
+ *       401:
+ *         description: Not authenticated
+ */
+router.get('/me/activity', userController.getMyActivity);
+
+/**
+ * @swagger
  * /api/v1/users/me:
  *   get:
  *     summary: Get current user profile

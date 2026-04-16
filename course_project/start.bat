@@ -17,6 +17,7 @@ set "ADMIN_URL=%FRONTEND_BASE%/admin"
 set "SWAGGER_URL=%BACKEND_BASE%/api/v1/docs"
 set "HEALTH_URL=%BACKEND_BASE%/health"
 set "MINIO_URL=http://localhost:9001"
+set "ADMIN_EMAIL=admin@clipsphere.com"
 
 for %%A in (%*) do (
     if /I "%%~A"=="--no-open" set "OPEN_BROWSER=0"
@@ -86,11 +87,17 @@ echo   Swagger   : %SWAGGER_URL%
 echo   Health    : %HEALTH_URL%
 echo   MinIO     : %MINIO_URL%   ^(minioadmin / minioadmin^)
 echo.
+setlocal DisableDelayedExpansion
+echo Admin credentials
+echo   Email     : %ADMIN_EMAIL%
+echo   Password  : Admin1234!
+endlocal
+echo.
 echo Suggested TA demo flow
 echo   1. Open Register or Login and create a user session.
 echo   2. Open Upload and submit an MP4 clip.
 echo   3. Open Feed and show the uploaded video preview.
-echo   4. Open Admin and Swagger for moderation and API questions.
+echo   4. Log in with the admin account, then open Admin for moderation and stats.
 echo   5. Open MinIO if asked where the uploaded media is stored.
 echo.
 echo Notification engine note
@@ -103,7 +110,6 @@ if "%OPEN_BROWSER%"=="1" (
     call :open_url "%HOME_URL%"
     call :open_url "%REGISTER_URL%"
     call :open_url "%UPLOAD_URL%"
-    call :open_url "%ADMIN_URL%"
     call :open_url "%SWAGGER_URL%"
     call :open_url "%MINIO_URL%"
 )

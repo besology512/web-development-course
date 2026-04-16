@@ -12,6 +12,21 @@ exports.getMe = (req, res) => {
     });
 };
 
+exports.getMyActivity = async (req, res, next) => {
+    try {
+        const activity = await userService.getMyActivity(req.user.id, req.query.limit);
+        res.status(200).json({
+            status: 'success',
+            results: activity.length,
+            data: {
+                activity
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 exports.updateMe = async (req, res, next) => {
     try {
         const updatedUser = await userService.updateMe(req.user.id, req.body);

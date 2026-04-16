@@ -1,99 +1,202 @@
 'use client';
+
 import { useEffect, useState } from 'react';
-import { api } from '@/services/api';
-import { useAuth } from '@/hooks/useAuth';
 import NavBar from '@/components/NavBar';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
+import { api } from '@/services/api';
+
+interface ActiveUser {
+    _id?: string;
+    username: string;
+    videoCount: number;
+}
+
+interface ModerationVideo {
+    _id: string;
+    title: string;
+    status: string;
+    owner?: {
+        _id: string;
+        username: string;
+    };
+}
+
+interface AdminStats {
+    totalUsers: number;
+    totalVideos: number;
+    totalTips: number;
+    mostActiveUsers: ActiveUser[];
+}
+
+interface AdminHealth {
+    uptime?: string;
+    dbConnection?: string;
+    memory?: {
+        rss?: string;
+        heapTotal?: string;
+        heapUsed?: string;
+    };
+}
 
 export default function AdminPage() {
-    const [stats, setStats] = useState<Record<string, unknown> | null>(null);
-    const [health, setHealth] = useState<Record<string, unknown> | null>(null);
-    const [loading, setLoading] = useState(true);
     const { user, loading: authLoading } = useAuth();
-    const router = useRouter();
-    const [localDemoAccess, setLocalDemoAccess] = useState<boolean | null>(null);
+    const [stats, setStats] = useState<AdminStats | null>(null);
+    const [health, setHealth] = useState<AdminHealth | null>(null);
+    const [moderation, setModeration] = useState<ModerationVideo[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [accessDenied, setAccessDenied] = useState(false);
+    const [error, setError] = useState('');
 
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const host = window.location.hostname;
-        setLocalDemoAccess(host === 'localhost' || host === '127.0.0.1');
-    }, []);
+        if (authLoading) return;
 
-    useEffect(() => {
-        if (localDemoAccess === null) return;
-        if (!authLoading && !localDemoAccess && (!user || user.role !== 'admin')) {
-            router.push('/feed');
+        if (!user || user.role !== 'admin') {
+            setAccessDenied(true);
+            setLoading(false);
+            return;
         }
-    }, [user, authLoading, localDemoAccess, router]);
 
-    useEffect(() => {
-        if (localDemoAccess === null) return;
-        if (!localDemoAccess && (!user || user.role !== 'admin')) return;
-        Promise.all([api.get('/admin/stats'), api.get('/admin/health')])
-            .then(([s, h]) => { setStats(s); setHealth(h); })
-            .catch(console.error)
+        Promise.all([
+            api.get('/admin/stats'),
+            api.get('/admin/health'),
+            api.get('/admin/moderation')
+        ])
+            .then(([statsRes, healthRes, moderationRes]) => {
+                setStats((statsRes.data as AdminStats) || null);
+                setHealth((healthRes.data as AdminHealth) || null);
+                setModeration((moderationRes.data?.videos as ModerationVideo[]) || []);
+            })
+            .catch((err: unknown) => {
+                const message = err instanceof Error ? err.message : 'Failed to load admin data';
+                if (/permission|logged in|access/i.test(message)) {
+                    setAccessDenied(true);
+                } else {
+                    setError(message);
+                }
+            })
             .finally(() => setLoading(false));
-    }, [user, localDemoAccess]);
+    }, [user, authLoading]);
 
-    if (authLoading || loading || localDemoAccess === null) return (
-        <div className="min-h-screen">
-            <NavBar />
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"/>
+    if (authLoading || loading) {
+        return (
+            <div className="min-h-screen">
+                <NavBar />
+                <div className="flex items-center justify-center h-64">
+                    <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
+                </div>
             </div>
-        </div>
-    );
+        );
+    }
 
-    const s = stats as { totalUsers?: number; totalVideos?: number; totalTips?: number; data?: { totalUsers?: number; totalVideos?: number } } | null;
+    if (accessDenied) {
+        return (
+            <div className="min-h-screen">
+                <NavBar />
+                <div className="max-w-3xl mx-auto px-4 py-16 text-center">
+                    <p className="text-sm uppercase tracking-[0.2em] text-slate-400">404</p>
+                    <h1 className="mt-3 text-3xl font-bold text-slate-900">Admin page not found</h1>
+                    <p className="mt-3 text-slate-600">
+                        This panel is only available to the seeded admin account.
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
     const statCards = [
-        { label: 'Total Users', value: s?.totalUsers ?? s?.data?.totalUsers },
-        { label: 'Total Videos', value: s?.totalVideos ?? s?.data?.totalVideos },
-        { label: 'Tips Processed', value: s?.totalTips ?? 0 }
+        { label: 'Total Users', value: stats?.totalUsers ?? '—' },
+        { label: 'Total Videos', value: stats?.totalVideos ?? '—' },
+        { label: 'Tips Processed', value: stats?.totalTips ?? '—' }
     ];
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-slate-50">
             <NavBar />
-            <div className="max-w-4xl mx-auto px-4 py-8">
-                <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
-                {localDemoAccess && (
-                    <div className="mb-6 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-                        Local demo admin access is enabled on this machine, so this dashboard opens without manual login.
+            <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+                <div>
+                    <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Admin</p>
+                    <h1 className="mt-2 text-3xl font-bold text-slate-900">Platform Dashboard</h1>
+                    <p className="mt-2 text-slate-600">
+                        Restricted access for the seeded admin account only.
+                    </p>
+                </div>
+
+                {error && (
+                    <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                        {error}
                     </div>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    {statCards.map(s => (
-                        <div key={s.label} className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-                            <p className="text-gray-400 text-sm">{s.label}</p>
-                            <p className="text-3xl font-bold mt-2 text-white">{s.value ?? '—'}</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {statCards.map((item) => (
+                        <div key={item.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <p className="text-sm text-slate-500">{item.label}</p>
+                            <p className="mt-3 text-3xl font-bold text-slate-900">{item.value}</p>
                         </div>
                     ))}
                 </div>
-                {health && (
-                    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-                        <h2 className="font-semibold mb-4 text-indigo-400">System Health</h2>
-                        <div className="grid grid-cols-2 gap-3 text-sm">
+
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <h2 className="text-lg font-semibold text-slate-900">System Health</h2>
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                             <div>
-                                <span className="text-gray-400">Status: </span>
-                                <span className="text-green-400 font-medium">
-                                    {((health as Record<string, unknown>).status as string) || 'OK'}
-                                </span>
+                                <span className="text-slate-500">Database</span>
+                                <p className="mt-1 font-medium text-slate-900">{health?.dbConnection ?? 'unknown'}</p>
                             </div>
                             <div>
-                                <span className="text-gray-400">DB: </span>
-                                <span className="text-green-400 font-medium">
-                                    {((health as Record<string, unknown>).data as Record<string, unknown>)?.dbStatus as string || 'connected'}
-                                </span>
+                                <span className="text-slate-500">Uptime</span>
+                                <p className="mt-1 font-medium text-slate-900">{health?.uptime ?? 'unknown'}</p>
                             </div>
                             <div>
-                                <span className="text-gray-400">Uptime: </span>
-                                <span>
-                                    {((health as Record<string, unknown>).data as Record<string, unknown>)?.uptime as number ?? (health as Record<string, unknown>).uptime as number ?? 'N/A'}s
-                                </span>
+                                <span className="text-slate-500">RSS Memory</span>
+                                <p className="mt-1 font-medium text-slate-900">{health?.memory?.rss ?? 'unknown'}</p>
+                            </div>
+                            <div>
+                                <span className="text-slate-500">Heap Used</span>
+                                <p className="mt-1 font-medium text-slate-900">{health?.memory?.heapUsed ?? 'unknown'}</p>
                             </div>
                         </div>
+                    </section>
+
+                    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <h2 className="text-lg font-semibold text-slate-900">Most Active Users</h2>
+                        <div className="mt-4 space-y-3">
+                            {(stats?.mostActiveUsers?.length ? stats.mostActiveUsers : []).map((entry) => (
+                                <div key={`${entry.username}-${entry.videoCount}`} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+                                    <span className="font-medium text-slate-900">@{entry.username}</span>
+                                    <span className="text-sm text-slate-500">{entry.videoCount} videos</span>
+                                </div>
+                            ))}
+                            {!stats?.mostActiveUsers?.length && (
+                                <p className="text-sm text-slate-500">No activity data is available yet.</p>
+                            )}
+                        </div>
+                    </section>
+                </div>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h2 className="text-lg font-semibold text-slate-900">Moderation Queue</h2>
+                    <div className="mt-4 space-y-3">
+                        {moderation.length === 0 ? (
+                            <p className="text-sm text-slate-500">No flagged or reported content right now.</p>
+                        ) : (
+                            moderation.map((video) => (
+                                <div key={video._id} className="flex flex-col gap-1 rounded-xl bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <p className="font-medium text-slate-900">{video.title}</p>
+                                        <p className="text-sm text-slate-500">
+                                            {video.owner?.username ? `@${video.owner.username}` : 'Unknown creator'}
+                                        </p>
+                                    </div>
+                                    <span className="inline-flex w-fit rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800">
+                                        {video.status}
+                                    </span>
+                                </div>
+                            ))
+                        )}
                     </div>
-                )}
+                </section>
             </div>
         </div>
     );

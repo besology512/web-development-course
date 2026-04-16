@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { api, setToken, clearToken } from '@/services/api';
+import { api, setToken, clearToken, setStoredUser } from '@/services/api';
 
 export interface AuthUser {
     _id: string;
@@ -21,7 +21,9 @@ export function useAuth() {
 
         if (cachedUser) {
             try {
-                setUser(JSON.parse(cachedUser));
+                const parsedUser = JSON.parse(cachedUser);
+                setUser(parsedUser);
+                setStoredUser(parsedUser);
             } catch {
                 localStorage.removeItem('user');
             }
@@ -30,7 +32,7 @@ export function useAuth() {
         if (!token) { setLoading(false); return; }
         api.get('/users/me').then(res => {
             setUser(res.data.user);
-            localStorage.setItem('user', JSON.stringify(res.data.user));
+            setStoredUser(res.data.user);
         }).catch(() => {
             clearToken();
         }).finally(() => setLoading(false));
@@ -40,7 +42,7 @@ export function useAuth() {
         const res = await api.post('/auth/login', { email, password });
         setToken(res.token);
         setUser(res.data.user);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
+        setStoredUser(res.data.user);
         return res.data.user;
     };
 

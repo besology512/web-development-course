@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { useRecentActivity } from '@/hooks/useRecentActivity';
 import { usePathname } from 'next/navigation';
 
 interface NavBarProps {
@@ -74,6 +75,7 @@ function Icon({ name, active = false }: { name: 'home' | 'plus' | 'settings' | '
 
 export default function NavBar({ hasActivity, notifications = [], onActivityClick }: NavBarProps) {
     const { user, logout } = useAuth();
+    const { activity } = useRecentActivity(Boolean(user), 10);
     const pathname = usePathname();
     const [showActivity, setShowActivity] = useState(false);
     const [viewportWidth, setViewportWidth] = useState(0);
@@ -97,7 +99,9 @@ export default function NavBar({ hasActivity, notifications = [], onActivityClic
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showActivity]);
 
-    const mergedNotifications = notifications.slice(0, 20);
+    const mergedNotifications = [...notifications, ...activity.map((item) => item.message)]
+        .filter((value, index, source) => source.indexOf(value) === index)
+        .slice(0, 20);
     const compactGuestAction = !user && viewportWidth > 0 && viewportWidth < 480;
     const isDesktop = viewportWidth >= 768;
 
@@ -291,6 +295,25 @@ export default function NavBar({ hasActivity, notifications = [], onActivityClic
                                         @{user.username}
                                     </span>
                                 </Link>
+                                {user.role === 'admin' && (
+                                    <Link
+                                        href="/admin"
+                                        style={{
+                                            textDecoration: 'none',
+                                            background: '#fff',
+                                            color: 'var(--navy)',
+                                            border: '1px solid var(--border)',
+                                            padding: '11px 16px',
+                                            borderRadius: 14,
+                                            fontSize: 14,
+                                            fontWeight: 700,
+                                            display: isDesktop ? 'inline-flex' : 'none',
+                                            boxShadow: 'var(--card-shadow)'
+                                        }}
+                                    >
+                                        Admin
+                                    </Link>
+                                )}
                                 <button
                                     onClick={handleLogout}
                                     type="button"
