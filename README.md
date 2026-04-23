@@ -27,5 +27,16 @@ Advanced exercises on automated testing with Postman and API documentation with 
 - **Part 4-5:** Swagger YAML documentation and Swagger UI integration.
 - **Verification:** Automated verification of API responses and documentation access.
 
+### 📁 [Lab 6: Modern Web Architecture & Next.js](./lab6)
+Advanced exercise transitioning the stack to modern Next.js architecture.
+- **Tech Stack:** Next.js (App Router), Tailwind CSS, React.
+- **Key Concepts:** Server Components, Client Components, API Routes, and optimized Image loading.
+
+### 📁 [Lab 8: Stripe Integration & Secure Payments](./lab8)
+Full-stack implementation of a secure payment gateway using Stripe.
+- **Features:** Server-side Checkout Session generation, Webhook integration for real-time payment status updates, and secure environment configuration.
+- **Tools:** Stripe CLI, Ngrok (for local webhook testing), Stripe Dashboard.
+- **Verification:** Automated webhook handling and payment success redirection.
+
 ---
 *Created by besology512 for Spring 2026 Evaluation.*

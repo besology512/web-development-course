@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 40 30% 98%;
+  --foreground: 230 20% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 43 70% 50%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 43 20% 90%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 43 70% 50%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 43 70% 50%;
+  --radius: 0.75rem;
+  
+  /* Custom Tokens */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(212, 175, 55, 0.2);
+  --cinematic-glow: 0 0 20px rgba(212, 175, 55, 0.1);
+}
+
+.dark {
+  --background: 230 40% 5%;
+  --foreground: 210 40% 98%;
+  --card: 230 40% 7%;
+  --card-foreground: 210 40% 98%;
+  --popover: 230 40% 7%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 45 93% 47%;
+  --primary-foreground: 230 40% 5%;
+  --secondary: 230 30% 15%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 230 30% 15%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 45 93% 47%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 230 30% 20%;
+  --input: 230 30% 20%;
+  --ring: 45 93% 47%;
+  
+  /* Custom Tokens */
+  --glass-bg: rgba(10, 10, 26, 0.8);
+  --glass-border: rgba(212, 175, 55, 0.3);
+  --cinematic-glow: 0 0 30px rgba(212, 175, 55, 0.2);
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border) / 0.2);
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: 'Inter', sans-serif;
+    transition: background-color 0.5s ease, color 0.5s ease;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--cinematic-glow);
+  }
+  
+  .glass-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    width: 100%;
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--glass-border);
+  }
+
+  .premium-button {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    padding: 0.75rem 1.5rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+  
+  .premium-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+  }
+  
+  .premium-button:active {
+    transform: scale(0.95);
+  }
+
+  .gold-glow {
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+}
