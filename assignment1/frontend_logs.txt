@@ -1,0 +1,19 @@
+﻿[2Kfrontend-1  | 
+[2Kfrontend-1  | > frontend@0.0.0 dev
+[2Kfrontend-1  | > vite --host --host
+[2Kfrontend-1  | 
+[2Kfrontend-1  | 4:51:44 AM [vite] (client) Re-optimizing dependencies because vite config has changed
+[2Kfrontend-1  | 
+[2Kfrontend-1  |   VITE v7.3.1  ready in 656 ms
+[2Kfrontend-1  | 
+[2Kfrontend-1  |   Γ₧£  Local:   http://localhost:5173/
+[2Kfrontend-1  |   Γ₧£  Network: http://172.20.0.4:5173/
+[2Kfrontend-1  | (!) Failed to run dependency scan. Skipping dependency pre-bundling. Error: The following dependencies are imported but could not be resolved:
+[2Kfrontend-1  | 
+[2Kfrontend-1  |   react-router-dom (imported by /app/src/pages/Bookings.jsx)
+[2Kfrontend-1  |   axios (imported by /app/src/pages/VerifyEmail.jsx)
+[2Kfrontend-1  | 
+[2Kfrontend-1  | Are they installed?
+[2Kfrontend-1  |     at file:///app/node_modules/vite/dist/node/chunks/config.js:31903:33
+[2Kfrontend-1  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[2Kfrontend-1  |     at async file:///app/node_modules/vite/dist/node/chunks/config.js:34111:15

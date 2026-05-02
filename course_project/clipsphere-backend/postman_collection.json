@@ -1,0 +1,411 @@
+{
+	"info": {
+		"_postman_id": "clipsphere-api-collection",
+		"name": "ClipSphere API",
+		"description": "Complete API collection for ClipSphere short-video social platform — SWAPD352 Phase 1",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"event": [
+		{
+			"listen": "test",
+			"script": {
+				"exec": [
+					"pm.test('Response status is not server error', function () {",
+					"    pm.expect(pm.response.code).to.be.below(500);",
+					"});"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000/api/v1"
+		},
+		{
+			"key": "token",
+			"value": ""
+		},
+		{
+			"key": "adminToken",
+			"value": ""
+		},
+		{
+			"key": "userId",
+			"value": ""
+		},
+		{
+			"key": "videoId",
+			"value": ""
+		}
+	],
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.collectionVariables.set('token', jsonData.token);",
+									"pm.collectionVariables.set('userId', jsonData.data.user._id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.collectionVariables.set('token', jsonData.token);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Get My Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/me",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "me"]
+						}
+					}
+				},
+				{
+					"name": "Update My Profile",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"bio\": \"Updated bio content\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/updateMe",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "updateMe"]
+						}
+					}
+				},
+				{
+					"name": "Update Preferences",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"inApp\": { \"followers\": true, \"comments\": false },\n  \"email\": { \"followers\": false }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/users/preferences",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "preferences"]
+						}
+					}
+				},
+				{
+					"name": "Get Public User Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{userId}}/profile",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "{{userId}}", "profile"]
+						}
+					}
+				},
+				{
+					"name": "Get User Followers (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{userId}}/followers",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "{{userId}}", "followers"]
+						}
+					}
+				},
+				{
+					"name": "Get User Following (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{userId}}/following",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "{{userId}}", "following"]
+						}
+					}
+				},
+				{
+					"name": "Follow User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{userId}}/follow",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "{{userId}}", "follow"]
+						}
+					}
+				},
+				{
+					"name": "Unfollow User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{userId}}/unfollow",
+							"host": ["{{baseUrl}}"],
+							"path": ["users", "{{userId}}", "unfollow"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Videos",
+			"item": [
+				{
+					"name": "Get All Videos (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/videos",
+							"host": ["{{baseUrl}}"],
+							"path": ["videos"]
+						}
+					}
+				},
+				{
+					"name": "Create Video",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.collectionVariables.set('videoId', jsonData.data.video._id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"My Cool Video\",\n  \"description\": \"This is a description\",\n  \"duration\": 120,\n  \"videoURL\": \"videos/cool-video.mp4\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/videos",
+							"host": ["{{baseUrl}}"],
+							"path": ["videos"]
+						}
+					}
+				},
+				{
+					"name": "Update Video",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Video Title\",\n  \"description\": \"Updated description\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/videos/{{videoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["videos", "{{videoId}}"]
+						}
+					}
+				},
+				{
+					"name": "Add Review",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{token}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rating\": 5,\n  \"comment\": \"Great video!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/videos/{{videoId}}/reviews",
+							"host": ["{{baseUrl}}"],
+							"path": ["videos", "{{videoId}}", "reviews"]
+						}
+					}
+				},
+				{
+					"name": "Delete Video",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/videos/{{videoId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["videos", "{{videoId}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "Get Stats",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/stats",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "stats"]
+						}
+					}
+				},
+				{
+					"name": "Update User Status",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"suspended\",\n  \"active\": false\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/users/{{userId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "users", "{{userId}}", "status"]
+						}
+					}
+				},
+				{
+					"name": "Moderation Queue",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/moderation",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "moderation"]
+						}
+					}
+				},
+				{
+					"name": "Admin Health",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["admin", "health"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Public Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/health",
+							"host": ["http://localhost:5000"],
+							"path": ["health"]
+						}
+					}
+				}
+			]
+		}
+	]
+}
