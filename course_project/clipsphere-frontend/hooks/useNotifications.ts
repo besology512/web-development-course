@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import socketService, { Notification } from '@/services/socket';
+import { getToken } from '@/services/api';
 import { useAuth } from './useAuth';
 
 interface UseNotificationsReturn {
@@ -15,12 +16,13 @@ interface UseNotificationsReturn {
 }
 
 export const useNotifications = (): UseNotificationsReturn => {
-    const { user, token } = useAuth();
+    const { user } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [isConnected, setIsConnected] = useState(false);
 
     // Initialize Socket connection
     useEffect(() => {
+        const token = getToken();
         if (!token || !user) {
             return;
         }
@@ -45,7 +47,7 @@ export const useNotifications = (): UseNotificationsReturn => {
         } catch (error) {
             console.error('Failed to initialize socket:', error);
         }
-    }, [token, user]);
+    }, [user]);
 
     const addNotification = useCallback((notification: Notification) => {
         setNotifications((prev) => [notification, ...prev]);

@@ -9,8 +9,8 @@ interface Transaction {
     type: 'tip' | 'withdrawal' | 'refund' | 'bonus';
     status: 'pending' | 'completed' | 'failed';
     amount: number;
-    from: { username: string };
-    to: { username: string };
+    from: { _id: string; username: string };
+    to: { _id: string; username: string };
     video?: { title: string };
     createdAt: string;
 }
@@ -71,7 +71,7 @@ export const CreatorBalance: React.FC<{ userId: string }> = ({ userId }) => {
         );
     }
 
-    const isOwnWallet = user?.id === userId;
+    const isOwnWallet = user?._id === userId;
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
@@ -191,7 +191,7 @@ export const CreatorBalance: React.FC<{ userId: string }> = ({ userId }) => {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                                {user?.id === tx.to._id ? `From ${tx.from.username}` : `To ${tx.to.username}`}
+                                                {user?._id === tx.to._id ? `From ${tx.from.username}` : `To ${tx.to.username}`}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                                                 {tx.video?.title || '-'}

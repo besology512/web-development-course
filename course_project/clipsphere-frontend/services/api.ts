@@ -21,6 +21,18 @@ export function clearToken() {
     }
 }
 
+export function setStoredUser(user: unknown) {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('user', JSON.stringify(user));
+}
+
+export function getStoredUser<T = unknown>(): T | null {
+    if (typeof window === 'undefined') return null;
+    const raw = localStorage.getItem('user');
+    if (!raw) return null;
+    try { return JSON.parse(raw) as T; } catch { return null; }
+}
+
 async function request(path: string, options: RequestInit = {}) {
     const token = getToken();
     const headers: Record<string, string> = {

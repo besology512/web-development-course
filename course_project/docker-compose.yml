@@ -102,6 +102,18 @@ services:
     depends_on:
       - backend
 
+  nginx:
+    build:
+      context: ./nginx
+    container_name: clipsphere_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - frontend
+      - backend
+      - minio
+
 volumes:
   mongodb_data:
   minio_data:
