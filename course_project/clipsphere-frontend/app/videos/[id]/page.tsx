@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import NavBar from '@/components/NavBar';
 import VideoPlayer from '@/components/VideoPlayer';
 import ReviewForm from '@/components/ReviewForm';
+import TipButton from '@/components/TipButton';
 import Link from 'next/link';
 
 interface Review {
@@ -27,6 +28,7 @@ interface Video {
     duration: number;
     viewsCount: number;
     likesCount: number;
+    tippedAmount: number;
     avgRating: number;
     reviewCount: number;
     userLiked: boolean;
@@ -37,30 +39,6 @@ interface Video {
         rating: number;
         comment: string;
     } | null;
-}
-
-function RatingStars({ rating }: { rating: number }) {
-    return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ display: 'flex', gap: 2 }}>
-                {[1, 2, 3, 4, 5].map((score) => {
-                    const filled = score <= rating;
-                    return (
-                        <svg key={score} width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-                            <path
-                                d="m12 3.6 2.61 5.29 5.84.85-4.22 4.11 1 5.81L12 16.92 6.77 19.66l1-5.81-4.22-4.11 5.84-.85L12 3.6Z"
-                                fill={filled ? '#f59e0b' : 'none'}
-                                stroke={filled ? '#f59e0b' : '#cbd5e1'}
-                                strokeWidth="1.5"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
-                    );
-                })}
-            </div>
-            <span style={{ color: '#94a3b8', marginLeft: 6 }}>{rating}/5</span>
-        </div>
-    );
 }
 
 export default function VideoDetailPage() {
@@ -96,7 +74,7 @@ export default function VideoDetailPage() {
         try {
             const res = await api.post(`/videos/${id}/view`, {});
             setVideo((current) => current ? { ...current, viewsCount: res.data.viewsCount } : current);
-        } catch {
+        } catch (error) {
             viewedRef.current = false;
         }
     };
@@ -188,8 +166,9 @@ export default function VideoDetailPage() {
                                     <span style={{ color: '#64748b', fontSize: 14 }}>{video.viewsCount} views</span>
                                     <span style={{ color: '#64748b', fontSize: 14 }}>{video.likesCount} likes</span>
                                     <span style={{ color: '#64748b', fontSize: 14 }}>
-                                        {video.reviewCount} reviews{video.avgRating ? ` | ${video.avgRating.toFixed(1)}/5` : ''}
+                                        {video.reviewCount} reviews{video.avgRating ? ` • ${video.avgRating.toFixed(1)}★` : ''}
                                     </span>
+                                    <span style={{ color: '#64748b', fontSize: 14 }}>${Number(video.tippedAmount || 0).toFixed(2)} tipped</span>
                                 </div>
                                 {video.description && (
                                     <p style={{ color: '#475569', fontSize: 15, lineHeight: 1.7, marginTop: 14 }}>
@@ -213,8 +192,11 @@ export default function VideoDetailPage() {
                                         opacity: !user ? 0.6 : 1
                                     }}
                                 >
-                                    {video.userLiked ? 'Liked' : 'Like'} | {video.likesCount}
+                                    {video.userLiked ? 'Liked' : 'Like'} • {video.likesCount}
                                 </button>
+                                {user && !isOwner && ownerId && (
+                                    <TipButton toUserId={ownerId} videoId={video._id} />
+                                )}
                                 {isOwner && (
                                     <button
                                         onClick={handleDelete}
@@ -252,7 +234,7 @@ export default function VideoDetailPage() {
                                     { label: 'Views', value: String(video.viewsCount) },
                                     { label: 'Likes', value: String(video.likesCount) },
                                     { label: 'Reviews', value: String(video.reviewCount) },
-                                    { label: 'Rating', value: video.avgRating ? `${video.avgRating.toFixed(1)}/5` : 'New' }
+                                    { label: 'Tips', value: `$${Number(video.tippedAmount || 0).toFixed(2)}` }
                                 ].map((item) => (
                                     <div key={item.label} style={{ background: '#f8fafc', borderRadius: 16, padding: '14px 16px' }}>
                                         <div style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 }}>
@@ -339,8 +321,9 @@ export default function VideoDetailPage() {
                                             <div style={{ color: '#0f172a', fontSize: 15, fontWeight: 700 }}>
                                                 @{review.user.username}
                                             </div>
-                                            <div style={{ marginTop: 4 }}>
-                                                <RatingStars rating={review.rating} />
+                                            <div style={{ color: '#f59e0b', fontSize: 14, fontWeight: 700, marginTop: 4 }}>
+                                                {'★'.repeat(review.rating)}
+                                                <span style={{ color: '#94a3b8', marginLeft: 8 }}>{review.rating}/5</span>
                                             </div>
                                         </div>
                                         <div style={{ color: '#94a3b8', fontSize: 13 }}>

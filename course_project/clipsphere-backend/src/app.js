@@ -13,12 +13,13 @@ const userRoutes = require('./routes/userRoutes');
 const videoRoutes = require('./routes/videoRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const adminRoutes = require('./routes/adminRoutes');
-const paymentRoutes = require('./routes/paymentRoutes');
+const tipRoutes = require('./routes/tipRoutes');
 const rateLimit = require('express-rate-limit');
 
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(helmet()); // Security headers
@@ -27,9 +28,8 @@ app.use(cors({
     credentials: true
 }));
 
-// Webhook handler MUST come before JSON parsing to access raw body
-const paymentController = require('./controllers/paymentController');
-app.post('/api/v1/payments/webhook', express.raw({type: 'application/json'}), paymentController.handleStripeWebhook);
+// Raw body for Stripe webhook (must be before express.json)
+app.use('/api/v1/tips/webhook', express.raw({ type: 'application/json' }));
 
 app.use(express.json()); // Body parser
 app.use(mongoSanitize()); // Data sanitization against NoSQL query injection
@@ -73,15 +73,14 @@ const swaggerOptions = {
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
-app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
-app.use('/api/v1/videos', videoRoutes);
 app.use('/api/v1/videos', uploadRoutes);
-app.use('/api/v1/payments', paymentRoutes);
+app.use('/api/v1/videos', videoRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/tips', tipRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {

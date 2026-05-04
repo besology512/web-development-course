@@ -185,6 +185,7 @@ router.get('/me/activity', userController.getMyActivity);
  *         description: Not authenticated
  */
 router.get('/me', userController.getMe);
+router.get('/me/activity', userController.getActivity);
 
 /**
  * @swagger

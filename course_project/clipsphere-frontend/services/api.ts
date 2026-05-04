@@ -1,47 +1,24 @@
 const BASE = '/api/v1';
-const COOKIE_MAX_AGE = 60 * 60 * 24;
 
 export function getToken(): string | null {
     if (typeof window === 'undefined') return null;
     return localStorage.getItem('token');
 }
 
-function setCookie(name: string, value: string) {
-    if (typeof document === 'undefined') return;
-    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
-}
-
-function clearCookie(name: string) {
-    if (typeof document === 'undefined') return;
-    document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
-}
-
 export function setToken(token: string) {
     localStorage.setItem('token', token);
-    setCookie('token', token);
-}
-
-export function setStoredUser(user: { role?: string } | null) {
-    if (typeof window === 'undefined') return;
-
-    if (!user) {
-        localStorage.removeItem('user');
-        clearCookie('user_role');
-        return;
-    }
-
-    localStorage.setItem('user', JSON.stringify(user));
-    if (user.role) {
-        setCookie('user_role', user.role);
-    } else {
-        clearCookie('user_role');
+    // Middleware checks cookie server-side — keep localStorage + cookie in sync.
+    if (typeof document !== 'undefined') {
+        document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`;
     }
 }
 
 export function clearToken() {
     localStorage.removeItem('token');
-    setStoredUser(null);
-    clearCookie('token');
+    localStorage.removeItem('user');
+    if (typeof document !== 'undefined') {
+        document.cookie = 'token=; path=/; max-age=0; SameSite=Lax';
+    }
 }
 
 async function request(path: string, options: RequestInit = {}) {

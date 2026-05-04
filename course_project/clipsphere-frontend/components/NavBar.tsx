@@ -2,8 +2,8 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { useRecentActivity } from '@/hooks/useRecentActivity';
-import { usePathname } from 'next/navigation';
+import { api } from '@/services/api';
+import { usePathname, useRouter } from 'next/navigation';
 
 interface NavBarProps {
     hasActivity?: boolean;
@@ -17,7 +17,7 @@ const mobileLinks = [
     { href: '/settings', label: 'Settings', icon: 'settings' }
 ] as const;
 
-function Icon({ name, active = false }: { name: 'home' | 'plus' | 'settings' | 'bell' | 'user' | 'search' | 'logout'; active?: boolean }) {
+function Icon({ name, active = false }: { name: 'home' | 'plus' | 'settings' | 'bell' | 'user' | 'search'; active?: boolean }) {
     const stroke = active ? '#0f172a' : '#718197';
     switch (name) {
         case 'home':
@@ -62,22 +62,15 @@ function Icon({ name, active = false }: { name: 'home' | 'plus' | 'settings' | '
                     <path d="m20 20-3.5-3.5" />
                 </svg>
             );
-        case 'logout':
-            return (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M15 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3" />
-                    <path d="M10 17l5-5-5-5" />
-                    <path d="M15 12H4" />
-                </svg>
-            );
     }
 }
 
 export default function NavBar({ hasActivity, notifications = [], onActivityClick }: NavBarProps) {
     const { user, logout } = useAuth();
-    const { activity } = useRecentActivity(Boolean(user), 10);
+    const router = useRouter();
     const pathname = usePathname();
     const [showActivity, setShowActivity] = useState(false);
+    const [storedActivity, setStoredActivity] = useState<string[]>([]);
     const [viewportWidth, setViewportWidth] = useState(0);
     const activityRef = useRef<HTMLDivElement>(null);
 
@@ -99,15 +92,34 @@ export default function NavBar({ hasActivity, notifications = [], onActivityClic
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showActivity]);
 
-    const mergedNotifications = [...notifications, ...activity.map((item) => item.message)]
-        .filter((value, index, source) => source.indexOf(value) === index)
+    useEffect(() => {
+        if (!user) {
+            setStoredActivity([]);
+            return;
+        }
+
+        const loadActivity = async () => {
+            try {
+                const res = await api.get('/users/me/activity');
+                setStoredActivity(res.data.activity.map((item: { message: string }) => item.message));
+            } catch {
+                setStoredActivity([]);
+            }
+        };
+
+        loadActivity();
+        window.addEventListener('focus', loadActivity);
+        return () => window.removeEventListener('focus', loadActivity);
+    }, [user]);
+
+    const mergedNotifications = [...notifications, ...storedActivity]
+        .filter((value, index, array) => array.indexOf(value) === index)
         .slice(0, 20);
     const compactGuestAction = !user && viewportWidth > 0 && viewportWidth < 480;
-    const isDesktop = viewportWidth >= 768;
 
     const handleLogout = () => {
-        setShowActivity(false);
         logout();
+        router.push('/login');
     };
 
     const toggleActivity = () => {
@@ -295,28 +307,9 @@ export default function NavBar({ hasActivity, notifications = [], onActivityClic
                                         @{user.username}
                                     </span>
                                 </Link>
-                                {user.role === 'admin' && (
-                                    <Link
-                                        href="/admin"
-                                        style={{
-                                            textDecoration: 'none',
-                                            background: '#fff',
-                                            color: 'var(--navy)',
-                                            border: '1px solid var(--border)',
-                                            padding: '11px 16px',
-                                            borderRadius: 14,
-                                            fontSize: 14,
-                                            fontWeight: 700,
-                                            display: isDesktop ? 'inline-flex' : 'none',
-                                            boxShadow: 'var(--card-shadow)'
-                                        }}
-                                    >
-                                        Admin
-                                    </Link>
-                                )}
                                 <button
                                     onClick={handleLogout}
-                                    type="button"
+                                    className="hidden md:inline-flex"
                                     style={{
                                         background: 'var(--navy)',
                                         color: '#fff',
@@ -324,30 +317,10 @@ export default function NavBar({ hasActivity, notifications = [], onActivityClic
                                         padding: '11px 16px',
                                         borderRadius: 14,
                                         fontSize: 14,
-                                        fontWeight: 700,
-                                        display: isDesktop ? 'inline-flex' : 'none'
+                                        fontWeight: 700
                                     }}
                                 >
                                     Logout
-                                </button>
-                                <button
-                                    onClick={handleLogout}
-                                    type="button"
-                                    aria-label="Logout"
-                                    style={{
-                                        width: 42,
-                                        height: 42,
-                                        borderRadius: 14,
-                                        border: '1px solid var(--border)',
-                                        background: '#fff',
-                                        display: isDesktop ? 'none' : 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        boxShadow: 'var(--card-shadow)',
-                                        flexShrink: 0
-                                    }}
-                                >
-                                    <Icon name="logout" />
                                 </button>
                             </>
                         ) : (

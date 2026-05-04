@@ -21,6 +21,7 @@ interface Video {
     duration: number;
     viewsCount: number;
     likesCount: number;
+    tippedAmount: number;
     avgRating?: number;
     reviewCount?: number;
     playbackUrl: string;

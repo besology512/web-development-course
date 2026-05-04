@@ -78,9 +78,10 @@ function serializeReview(review) {
     };
 }
 
-async function serializeVideo(video, reviewStatsById, userId) {
+function serializeVideo(video, reviewStatsById, userId) {
     const id = video._id.toString();
     const stats = reviewStatsById.get(id);
+    const owner = normalizeOwner(video);
     const likes = Array.isArray(video.likes) ? video.likes : [];
     const userLiked = Boolean(
         userId && likes.some((entry) => {
@@ -88,18 +89,6 @@ async function serializeVideo(video, reviewStatsById, userId) {
             return likeUser.toString() === userId.toString();
         })
     );
-    let playbackUrl = null;
-
-    try {
-        playbackUrl = await uploadService.getPresignedUrl(video.videoURL);
-    } catch (error) {}
-
-    const computedAvgRating = typeof video.avgRating === 'number' && !Number.isNaN(video.avgRating)
-        ? Number(video.avgRating.toFixed(1))
-        : stats ? Number(stats.avgRating.toFixed(1)) : 0;
-    const computedReviewCount = Number.isInteger(video.reviewCount)
-        ? video.reviewCount
-        : stats ? stats.reviewCount : 0;
 
     return {
         _id: id,
@@ -108,13 +97,14 @@ async function serializeVideo(video, reviewStatsById, userId) {
         duration: video.duration,
         viewsCount: video.viewsCount || 0,
         likesCount: video.likesCount || 0,
+        tippedAmount: video.tippedAmount || 0,
         status: video.status,
         createdAt: video.createdAt,
-        avgRating: computedAvgRating,
-        reviewCount: computedReviewCount,
+        avgRating: stats ? Number(stats.avgRating.toFixed(1)) : 0,
+        reviewCount: stats ? stats.reviewCount : 0,
         userLiked,
-        playbackUrl,
-        owner: normalizeOwner(video)
+        playbackUrl: uploadService.getPublicUrl(video.videoURL),
+        owner
     };
 }
 
@@ -144,7 +134,7 @@ exports.getAllVideos = async (query, userId) => {
     if (ownerId) {
         videos = await Video.find({ status: 'public', owner: ownerId })
             .populate('owner', 'username avatarKey')
-            .sort({ createdAt: -1, _id: -1 })
+            .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
             .lean();
@@ -157,64 +147,21 @@ exports.getAllVideos = async (query, userId) => {
 
         videos = await Video.find({ status: 'public', owner: { $in: followingIds } })
             .populate('owner', 'username avatarKey')
-            .sort({ createdAt: -1, _id: -1 })
+            .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
             .lean();
     } else {
-        videos = await Video.aggregate([
-            { $match: { status: 'public' } },
-            {
-                $lookup: {
-                    from: 'reviews',
-                    localField: '_id',
-                    foreignField: 'video',
-                    as: 'reviews'
-                }
-            },
-            {
-                $addFields: {
-                    avgRating: { $avg: '$reviews.rating' },
-                    reviewCount: { $size: '$reviews' }
-                }
-            },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'owner',
-                    foreignField: '_id',
-                    as: 'ownerData'
-                }
-            },
-            { $unwind: '$ownerData' },
-            { $sort: { avgRating: -1, likesCount: -1, viewsCount: -1, createdAt: -1 } },
-            { $skip: skip },
-            { $limit: limit },
-            {
-                $project: {
-                    title: 1,
-                    description: 1,
-                    videoURL: 1,
-                    duration: 1,
-                    viewsCount: 1,
-                    likesCount: 1,
-                    likes: 1,
-                    status: 1,
-                    createdAt: 1,
-                    avgRating: 1,
-                    reviewCount: 1,
-                    'ownerData._id': 1,
-                    'ownerData.username': 1,
-                    'ownerData.avatarKey': 1
-                }
-            }
-        ]);
+        videos = await Video.find({ status: 'public' })
+            .populate('owner', 'username avatarKey')
+            .sort({ likesCount: -1, tippedAmount: -1, viewsCount: -1, createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
     }
 
     const reviewStatsById = await getReviewStats(videos.map((video) => video._id));
-    const serialized = await Promise.all(
-        videos.map((video) => serializeVideo(video, reviewStatsById, userId))
-    );
+    const serialized = videos.map((video) => serializeVideo(video, reviewStatsById, userId));
 
     if (feed === 'trending' && !ownerId && !userId && redis) {
         const cacheKey = `clipsphere:trending:${skip}:${limit}`;
@@ -242,8 +189,10 @@ exports.getVideoById = async (id, userId) => {
         userId ? Review.findOne({ video: id, user: userId }).lean() : Promise.resolve(null)
     ]);
 
+    const serializedVideo = serializeVideo(video, reviewStatsById, userId);
+
     return {
-        ...(await serializeVideo(video, reviewStatsById, userId)),
+        ...serializedVideo,
         reviews: reviews.map(serializeReview),
         myReview: myReview ? serializeReview(myReview) : null
     };
@@ -310,8 +259,8 @@ exports.incrementViews = async (videoId) => {
     return { viewsCount: video.viewsCount };
 };
 
-exports.toggleLike = async (videoId, userId) => {
-    const existing = await Video.findById(videoId).lean();
+exports.toggleLike = async (videoId, userId, io) => {
+    const existing = await Video.findById(videoId).populate('owner', 'username avatarKey').lean();
     if (!existing) {
         const err = new Error('Video not found');
         err.statusCode = 404;
@@ -334,7 +283,21 @@ exports.toggleLike = async (videoId, userId) => {
             $inc: { likesCount: 1 }
         };
 
-    const video = await Video.findByIdAndUpdate(videoId, update, { new: true }).lean();
+    const video = await Video.findByIdAndUpdate(videoId, update, { new: true })
+        .populate('owner', 'username avatarKey')
+        .lean();
+
+    if (!alreadyLiked) {
+        const User = require('../models/User');
+        const liker = await User.findById(userId).select('username');
+        if (io && liker && video.owner && video.owner._id.toString() !== userId.toString()) {
+            io.to(video.owner._id.toString()).emit('new-like', {
+                likerUsername: liker.username,
+                videoTitle: video.title
+            });
+        }
+    }
+
     await invalidateTrendingCache();
 
     return {

@@ -10,6 +10,7 @@ interface VideoCardProps {
         duration: number;
         viewsCount: number;
         likesCount: number;
+        tippedAmount: number;
         avgRating?: number;
         reviewCount?: number;
         playbackUrl: string;
@@ -26,7 +27,7 @@ function formatDuration(seconds: number) {
 export default function VideoCard({ video }: VideoCardProps) {
     const previewRef = useRef<HTMLVideoElement>(null);
     const ownerName = video.owner?.username || 'Unknown';
-    const rating = video.avgRating ? `${video.avgRating.toFixed(1)}/5` : 'New';
+    const rating = video.avgRating ? `${video.avgRating.toFixed(1)}★` : 'New';
 
     const startPreview = () => {
         previewRef.current?.play().catch(() => {});
@@ -198,10 +199,10 @@ export default function VideoCard({ video }: VideoCardProps) {
                         </div>
                         <div style={{ background: '#f8fbfe', borderRadius: 16, padding: '10px 12px' }}>
                             <div style={{ color: '#91a0b5', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                                Views
+                                Tips
                             </div>
                             <div style={{ color: '#16223a', fontSize: 15, fontWeight: 800, marginTop: 4 }}>
-                                {video.viewsCount}
+                                ${Number(video.tippedAmount || 0).toFixed(2)}
                             </div>
                         </div>
                     </div>

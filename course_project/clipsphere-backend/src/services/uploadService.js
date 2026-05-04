@@ -35,15 +35,17 @@ exports.getPresignedUrl = async (key) => {
         Key: key
     });
     const url = await getSignedUrl(s3, cmd, { expiresIn: 3600 });
+    // URL is signed against http://minio:9000 (internal) — rewrite to a public
+    // path the browser can reach. Nginx restores Host: minio:9000 upstream so
+    // SigV4 validation still passes.
     const internalBase = `http://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}`;
-    const publicBase = process.env.MINIO_PUBLIC_BASE || 'http://localhost:9000';
+    const publicBase = process.env.MINIO_PUBLIC_BASE || 'http://localhost/storage';
     return url.replace(internalBase, publicBase);
 };
 
 exports.getPublicUrl = (key) => {
-    const publicBase = process.env.MINIO_PUBLIC_BASE || 'http://localhost:9000';
-    const encodedKey = encodeURIComponent(key).replace(/%2F/g, '/');
-    return `${publicBase}/${process.env.MINIO_BUCKET}/${encodedKey}`;
+    const publicBase = process.env.MINIO_PUBLIC_BASE || 'http://localhost/storage';
+    return `${publicBase}/${process.env.MINIO_BUCKET}/${encodeURIComponent(key).replace(/%2F/g, '/')}`;
 };
 
 exports.deleteFromMinio = async (key) => {

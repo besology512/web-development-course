@@ -11,20 +11,6 @@ interface ReviewFormProps {
     onReviewSaved: () => void;
 }
 
-function StarIcon({ filled }: { filled: boolean }) {
-    return (
-        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-                d="m12 3.6 2.61 5.29 5.84.85-4.22 4.11 1 5.81L12 16.92 6.77 19.66l1-5.81-4.22-4.11 5.84-.85L12 3.6Z"
-                fill={filled ? '#f59e0b' : 'none'}
-                stroke={filled ? '#f59e0b' : '#cbd5e1'}
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-            />
-        </svg>
-    );
-}
-
 export default function ReviewForm({ videoId, initialReview, onReviewSaved }: ReviewFormProps) {
     const [rating, setRating] = useState(initialReview?.rating || 0);
     const [hover, setHover] = useState(0);
@@ -81,10 +67,13 @@ export default function ReviewForm({ videoId, initialReview, onReviewSaved }: Re
                             background: 'none',
                             border: 'none',
                             padding: 2,
+                            fontSize: 26,
+                            lineHeight: 1,
+                            color: score <= (hover || rating) ? '#f59e0b' : '#cbd5e1',
                             cursor: 'pointer'
                         }}
                     >
-                        <StarIcon filled={score <= (hover || rating)} />
+                        ★
                     </button>
                 ))}
                 {rating > 0 && (

@@ -1,14 +1,15 @@
 'use client';
-import { useState, useEffect, useCallback, type ReactNode } from 'react';
+import { Suspense, useState, useEffect, useCallback, type ReactNode } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/services/api';
 import NavBar from '@/components/NavBar';
 import VideoCard from '@/components/VideoCard';
 import SkeletonCard from '@/components/SkeletonCard';
+import Toast from '@/components/Toast';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { useSocket } from '@/hooks/useSocket';
 import { useAuth } from '@/hooks/useAuth';
-import { useRecentActivity } from '@/hooks/useRecentActivity';
 
 interface Video {
     _id: string;
@@ -17,6 +18,7 @@ interface Video {
     duration: number;
     viewsCount: number;
     likesCount: number;
+    tippedAmount: number;
     avgRating?: number;
     reviewCount?: number;
     playbackUrl: string;
@@ -26,7 +28,7 @@ interface Video {
 interface CreatorSummary {
     id: string;
     username: string;
-    likes: number;
+    tipped: number;
     views: number;
 }
 
@@ -44,16 +46,20 @@ function DashboardShell({ children }: { children: ReactNode }) {
     );
 }
 
-export default function FeedPage() {
+function FeedContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [videos, setVideos] = useState<Video[]>([]);
     const [loading, setLoading] = useState(true);
     const [skip, setSkip] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const [tab, setTab] = useState<'trending' | 'following'>('trending');
+    const [toast, setToast] = useState<string | null>(null);
+    const [liveNotifications, setLiveNotifications] = useState<string[]>([]);
+    const [tipSyncing, setTipSyncing] = useState(false);
     const [viewportWidth, setViewportWidth] = useState(0);
     const { user } = useAuth();
-    const { activity } = useRecentActivity(Boolean(user), 6);
+    const { socket } = useSocket();
 
     useEffect(() => {
         const updateViewport = () => setViewportWidth(window.innerWidth);
@@ -61,6 +67,21 @@ export default function FeedPage() {
         window.addEventListener('resize', updateViewport);
         return () => window.removeEventListener('resize', updateViewport);
     }, []);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handler = (data: { likerUsername: string; videoTitle: string }) => {
+            const message = `${data.likerUsername} liked your video "${data.videoTitle}"`;
+            setToast(message);
+            setLiveNotifications((prev) => [message, ...prev].slice(0, 10));
+        };
+
+        socket.on('new-like', handler);
+        return () => {
+            socket.off('new-like', handler);
+        };
+    }, [socket]);
 
     const fetchVideos = useCallback(async (reset = false, currentSkip = 0) => {
         setLoading(true);
@@ -90,6 +111,45 @@ export default function FeedPage() {
         return () => window.removeEventListener('focus', onFocus);
     }, [fetchVideos]);
 
+    useEffect(() => {
+        const tipStatus = searchParams.get('tip');
+        const sessionId = searchParams.get('session_id');
+
+        if (tipStatus === 'cancelled') {
+            setToast('Tip payment was cancelled.');
+            router.replace('/feed');
+            return;
+        }
+
+        if (tipStatus === 'success' && !sessionId) {
+            setToast('Payment completed. Refreshing tip data.');
+            fetchVideos(true, 0).finally(() => router.replace('/feed'));
+            return;
+        }
+
+        if (tipStatus !== 'success' || !sessionId || !user || tipSyncing) return;
+
+        const confirmTip = async () => {
+            setTipSyncing(true);
+            try {
+                const res = await api.post('/tips/confirm', { sessionId });
+                if (res.data.paymentStatus === 'paid') {
+                    setToast(`Tip payment confirmed. $${(Number(res.data.amountTotal || 0) / 100).toFixed(2)} was added.`);
+                } else {
+                    setToast('Payment was received, but it is still processing.');
+                }
+                await fetchVideos(true, 0);
+            } catch (error) {
+                setToast(error instanceof Error ? error.message : 'Tip confirmation failed.');
+            } finally {
+                setTipSyncing(false);
+                router.replace('/feed');
+            }
+        };
+
+        confirmTip();
+    }, [searchParams, user, tipSyncing, fetchVideos, router]);
+
     const loadMore = useCallback(() => {
         if (!loading && hasMore) fetchVideos(false, skip);
     }, [loading, hasMore, fetchVideos, skip]);
@@ -101,7 +161,7 @@ export default function FeedPage() {
 
         const existing = acc.find((item) => item.id === video.owner?._id);
         if (existing) {
-            existing.likes += Number(video.likesCount || 0);
+            existing.tipped += Number(video.tippedAmount || 0);
             existing.views += Number(video.viewsCount || 0);
             return acc;
         }
@@ -109,26 +169,17 @@ export default function FeedPage() {
         acc.push({
             id: video.owner._id,
             username: video.owner.username,
-            likes: Number(video.likesCount || 0),
+            tipped: Number(video.tippedAmount || 0),
             views: Number(video.viewsCount || 0)
         });
         return acc;
-    }, []).sort((a, b) => (b.likes + b.views) - (a.likes + a.views)).slice(0, 4);
+    }, []).sort((a, b) => (b.tipped + b.views) - (a.tipped + a.views)).slice(0, 4);
 
     const statCards = [
         { label: 'Videos', value: videos.length, accent: '#28b7d6' },
         { label: 'Likes', value: videos.reduce((sum, video) => sum + Number(video.likesCount || 0), 0), accent: '#fb7185' },
         { label: 'Views', value: videos.reduce((sum, video) => sum + Number(video.viewsCount || 0), 0), accent: '#94a3b8' }
     ];
-
-    const fallbackActivityItems = videos.slice(0, 4).map((video) => {
-        const ownerName = video.owner?.username ? `@${video.owner.username}` : 'A creator';
-        return `${ownerName} posted "${video.title}" with ${video.viewsCount} views and ${video.reviewCount || 0} reviews.`;
-    });
-    const activityItems = activity.length > 0
-        ? activity.map((item) => item.message)
-        : fallbackActivityItems;
-
     const showLeftRail = viewportWidth >= 1024;
     const showRightRail = viewportWidth >= 1280;
     const useTwoColumnCards = viewportWidth >= 900;
@@ -148,7 +199,8 @@ export default function FeedPage() {
 
     return (
         <DashboardShell>
-            <NavBar hasActivity={activity.length > 0} notifications={activity.map((item) => item.message)} />
+            <NavBar notifications={liveNotifications} />
+            {toast && <Toast message={toast} onClose={() => setToast(null)} />}
 
             <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-5 md:py-8">
                 <div
@@ -257,7 +309,7 @@ export default function FeedPage() {
                                     </h1>
                                     <p style={{ color: '#74849b', fontSize: 14, margin: '10px 0 0', maxWidth: 520, lineHeight: 1.6 }}>
                                         {tab === 'trending'
-                                            ? 'Smaller, cleaner cards with real previews, visible review data, and better spacing on every screen.'
+                                            ? 'Smaller, cleaner cards with real previews, live engagement, and better spacing on every screen.'
                                             : 'Only creators you follow appear here, with the same compact responsive layout.'}
                                     </p>
                                 </div>
@@ -437,7 +489,7 @@ export default function FeedPage() {
                                                 </div>
                                             </div>
                                             <div style={{ color: '#fb7185', fontSize: 13, fontWeight: 800 }}>
-                                                {creator.likes} likes
+                                                ${creator.tipped.toFixed(2)}
                                             </div>
                                         </Link>
                                     ))
@@ -454,10 +506,10 @@ export default function FeedPage() {
                                 }}
                             >
                                 <p style={{ color: '#8ea0b4', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.8, margin: 0 }}>
-                                    Feed Activity
+                                    Live Activity
                                 </p>
                                 <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                    {(activityItems.length > 0 ? activityItems : ['Recent follows, likes, reviews, and uploads will show up here once activity is available.']).slice(0, 4).map((item, index) => (
+                                    {(liveNotifications.length > 0 ? liveNotifications : ['Likes, tips, and reviews will appear here as they happen.']).slice(0, 4).map((item, index) => (
                                         <div
                                             key={`${item}-${index}`}
                                             style={{
@@ -480,5 +532,13 @@ export default function FeedPage() {
                 </div>
             </div>
         </DashboardShell>
+    );
+}
+
+export default function FeedPage() {
+    return (
+        <Suspense fallback={<DashboardShell><NavBar /></DashboardShell>}>
+            <FeedContent />
+        </Suspense>
     );
 }

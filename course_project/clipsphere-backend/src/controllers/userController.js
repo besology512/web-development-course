@@ -154,3 +154,16 @@ exports.updatePreferences = async (req, res, next) => {
         }
     }
 };
+
+exports.getActivity = async (req, res, next) => {
+    try {
+        const activity = await userService.getActivity(req.user.id);
+        res.status(200).json({
+            status: 'success',
+            results: activity.length,
+            data: { activity }
+        });
+    } catch (error) {
+        next(error);
+    }
+};

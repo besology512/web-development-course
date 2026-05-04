@@ -33,6 +33,10 @@ const videoSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    tippedAmount: {
+        type: Number,
+        default: 0
+    },
     likes: [{
         _id: false,
         user: {

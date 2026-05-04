@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { api, setToken, setStoredUser } from '@/services/api';
+import { api, setToken } from '@/services/api';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -17,7 +17,7 @@ export default function RegisterPage() {
         try {
             const res = await api.post('/auth/register', form);
             setToken(res.token);
-            setStoredUser(res.data.user);
+            localStorage.setItem('user', JSON.stringify(res.data.user));
             router.refresh();
             router.push('/feed');
         } catch (err: unknown) {
