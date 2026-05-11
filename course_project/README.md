@@ -22,8 +22,8 @@ We have finalized Phase 4, focusing on full containerization, orchestration, and
 - **Storage:** MinIO (S3 Compatible)
 - **Gateway:** Nginx (Reverse Proxy + SSL)
 
-## 📖 Bonus Phase: Points-per-Action Scoring
-We are currently implementing a real-time "Trending Score" mechanism to prioritize high-engagement content.
+## 📖 Bonus Phase: Points-per-Action Scoring (COMPLETED ✅)
+We have successfully implemented a real-time "Trending Score" mechanism to prioritize high-engagement content.
 
 ### Scoring Formula
 `Total_Score = (Likes x 10) + (Avg_Rating x 2) + Freshness_Bonus`
