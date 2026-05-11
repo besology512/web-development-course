@@ -1,9 +1,15 @@
 const authService = require('../services/authService');
+const emailService = require('../services/emailService');
 const { z } = require('zod');
 
 exports.register = async (req, res, next) => {
     try {
         const result = await authService.register(req.body);
+
+        // Send Welcome Email (async, don't block response)
+        emailService.sendWelcomeEmail(result.user).catch(err => {
+            console.error('Error sending welcome email:', err.message);
+        });
 
         res.status(201).json({
             status: 'success',

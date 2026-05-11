@@ -1,0 +1,124 @@
+openapi: 3.0.0
+info:
+  title: ClipSphere API
+  version: 1.0.0
+  description: API documentation for ClipSphere video sharing platform. Explore the endpoints, schemas, and models for the ClipSphere backend service.
+servers:
+  - url: http://localhost:3000/api
+    description: Local development server
+paths:
+  /videos:
+    get:
+      summary: Get all videos
+      tags:
+        - Videos
+      description: Retrieve a list of all videos with optional filtering, sorting, and pagination.
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  results:
+                    type: integer
+                  data:
+                    type: object
+                    properties:
+                      videos:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Video'
+    post:
+      summary: Create a new video
+      tags:
+        - Videos
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VideoInput'
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      video:
+                        $ref: '#/components/schemas/Video'
+  /users/login:
+    post:
+      summary: User Login
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  token:
+                    type: string
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Video:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        user:
+          type: string
+          description: User ID (ObjectId)
+    VideoInput:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+        description:
+          type: string

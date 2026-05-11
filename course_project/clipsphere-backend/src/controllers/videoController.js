@@ -17,6 +17,45 @@ exports.createVideoMetadata = async (req, res, next) => {
     }
 };
 
+exports.uploadVideo = async (req, res, next) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ status: 'error', message: 'No video file provided' });
+        }
+
+        // 1. Upload to MinIO
+        const objectPath = await videoService.uploadToMinio(
+            req.file.buffer,
+            req.file.originalname,
+            req.file.mimetype
+        );
+
+        // 2. Create MongoDB Record
+        // We use the objectPath as the videoURL
+        const video = await videoService.createVideo({
+            title: req.body.title || req.file.originalname,
+            description: req.body.description || '',
+            duration: parseInt(req.body.duration) || 0,
+            videoURL: objectPath
+        }, req.user.id);
+
+        // 3. Get Presigned URL for immediate playback
+        const playURL = await videoService.getPresignedUrl(objectPath);
+
+        res.status(201).json({
+            status: 'success',
+            data: {
+                video: {
+                    ...video.toObject(),
+                    playURL
+                }
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 exports.getAllVideos = async (req, res, next) => {
     try {
         const userId = req.user ? req.user.id : null;

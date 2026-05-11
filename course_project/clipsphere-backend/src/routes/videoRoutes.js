@@ -2,6 +2,7 @@ const express = require('express');
 const videoController = require('../controllers/videoController');
 const { protect, attachUserIfPresent } = require('../middleware/authMiddleware');
 const { videoOwnership, videoDeletePermission } = require('../middleware/ownershipMiddleware');
+const upload = require('../middleware/videoUpload');
 
 const router = express.Router();
 
@@ -84,9 +85,43 @@ router.use(protect);
 
 /**
  * @swagger
+ * /api/v1/videos/upload:
+ *   post:
+ *     summary: Upload a new video file
+ *     tags: [Videos]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - video
+ *             properties:
+ *               video:
+ *                 type: string
+ *                 format: binary
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               duration:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: Video uploaded successfully
+ *       400:
+ *         description: No file or validation error
+ */
+router.post('/upload', upload.single('video'), videoController.uploadVideo);
+
+/**
+ * @swagger
  * /api/v1/videos:
  *   post:
- *     summary: Create video metadata
+ *     summary: Create video metadata (Legacy/Direct)
  *     tags: [Videos]
  *     security:
  *       - bearerAuth: []

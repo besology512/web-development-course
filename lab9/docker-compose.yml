@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  db:
+    image: mongo:latest
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - lab9_network
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6380:6379"
+    networks:
+      - lab9_network
+
+  app:
+    build: ./app
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DATABASE=mongodb://db:27017/lab3db
+      - JWT_SECRET=mySuperSecretKey
+      - JWT_EXPIRES_IN=1d
+      - REDIS_URL=redis://redis:6379
+      - STRIPE_SECRET_KEY=sk_test_placeholder_from_dashboard
+      - STRIPE_WEBHOOK_SECRET=whsec_placeholder
+      - FRONTEND_URL=http://localhost:3000
+    depends_on:
+      - db
+      - redis
+    networks:
+      - lab9_network
+
+  web:
+    image: nginx:latest
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx-cache:/var/cache/nginx
+    depends_on:
+      - app
+    networks:
+      - lab9_network
+
+volumes:
+  mongo-data:
+  nginx-cache:
+
+networks:
+  lab9_network:
+    driver: bridge

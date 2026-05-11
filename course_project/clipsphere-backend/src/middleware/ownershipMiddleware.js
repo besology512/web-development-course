@@ -36,7 +36,7 @@ exports.videoOwnership = async (req, res, next) => {
         }
 
         // Only the owner can update a video
-        if (video.owner.toString() !== req.user.id) {
+        if (!video.owner.equals(req.user._id)) {
             return res.status(403).json({ 
                 status: 'error', 
                 message: 'Ownership verification failed: You do not own this video.' 

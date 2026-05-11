@@ -15,8 +15,6 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const rateLimit = require('express-rate-limit');
 
-dotenv.config();
-
 const app = express();
 
 // Middleware

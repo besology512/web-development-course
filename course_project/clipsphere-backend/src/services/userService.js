@@ -48,19 +48,20 @@ exports.updateMe = async (userId, data) => {
 
 exports.updatePreferences = async (user, data) => {
     const validatedData = updatePreferencesSchema.parse(data);
-    const currentNotifications = user.notifications;
-    const newNotifications = {
-        inApp: { ...currentNotifications.inApp, ...validatedData.inApp },
-        email: { ...currentNotifications.email, ...validatedData.email }
-    };
+    
+    // Use Mongoose document methods to ensure subdocument change tracking.
+    if (validatedData.inApp) {
+        Object.assign(user.notifications.inApp, validatedData.inApp);
+    }
+    if (validatedData.email) {
+        Object.assign(user.notifications.email, validatedData.email);
+    }
 
-    const updatedUser = await User.findByIdAndUpdate(user.id, {
-        notifications: newNotifications
-    }, {
-        new: true,
-        runValidators: true
-    });
-    return updatedUser;
+    // Mark as modified if necessary
+    user.markModified('notifications');
+    
+    await user.save();
+    return user;
 };
 
 exports.followUser = async (followerId, followingId) => {
