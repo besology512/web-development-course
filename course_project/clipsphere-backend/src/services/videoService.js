@@ -64,24 +64,62 @@ exports.getPresignedUrl = async (objectPath) => {
     return await minioClient.presignedGetObject(bucket, objectPath, 24 * 60 * 60);
 };
 
+const calculateTrendingScore = async (video) => {
+    const likesScore = (video.likesCount || 0) * 10;
+
+    // Calculate Average Rating
+    const reviews = await Review.aggregate([
+        { $match: { video: video._id } },
+        { $group: { _id: null, avgRating: { $avg: '$rating' } } }
+    ]);
+    const avgRating = reviews.length > 0 ? reviews[0].avgRating : 0;
+    const ratingScore = avgRating * 2;
+
+    // Freshness Bonus: Max 50 points, decreasing linearly over 72 hours
+    const hoursSinceUpload = (Date.now() - video.createdAt) / (1000 * 60 * 60);
+    const freshnessBonus = Math.max(0, 50 - (hoursSinceUpload / 1.44)); // 72 hours to reach 0
+
+    return likesScore + ratingScore + freshnessBonus;
+};
+
 exports.getAllVideos = async (query = {}, userId = null) => {
     let videos = [];
     
+    // Check cache for trending feed
     if (query.feed === 'trending' && redisClient && redisClient.isOpen) {
         const cached = await redisClient.get('trending_videos');
-        if (cached) {
-            return JSON.parse(cached);
-        }
+        if (cached) return JSON.parse(cached);
     }
 
     if (query.feed === 'following' && userId) {
-        // Mock following logic, fetch recent
-        videos = await Video.find({ status: 'public' }).populate('owner', 'username avatarKey').sort('-createdAt');
+        // Step C: Following Boost
+        // 1. Find creators followed by the user
+        const Follower = require('../models/Follower');
+        const follows = await Follower.find({ followerId: userId }).select('followingId');
+        const followedIds = follows.map(f => f.followingId);
+
+        // 2. Fetch followed videos first, then others by trendingScore
+        const followedVideos = await Video.find({ 
+            status: 'public', 
+            owner: { $in: followedIds } 
+        }).populate('owner', 'username avatarKey').sort('-createdAt');
+
+        const otherVideos = await Video.find({ 
+            status: 'public', 
+            owner: { $nin: followedIds } 
+        }).populate('owner', 'username avatarKey').sort('-trendingScore -createdAt').limit(20);
+
+        videos = [...followedVideos, ...otherVideos];
     } else if (query.feed === 'trending') {
-        // Trending based on views
-        videos = await Video.find({ status: 'public' }).populate('owner', 'username avatarKey').sort('-views -createdAt').limit(20);
+        // Sort by trendingScore descending
+        videos = await Video.find({ status: 'public' })
+            .populate('owner', 'username avatarKey')
+            .sort('-trendingScore -createdAt')
+            .limit(20);
     } else {
-        videos = await Video.find({ status: 'public' }).populate('owner', 'username avatarKey').sort('-createdAt');
+        videos = await Video.find({ status: 'public' })
+            .populate('owner', 'username avatarKey')
+            .sort('-createdAt');
     }
     
     // Supplement with presigned URLs
@@ -122,6 +160,14 @@ exports.addReview = async (videoId, userId, data) => {
         video: videoId,
         user: userId
     });
+
+    // Update trendingScore
+    const video = await Video.findById(videoId);
+    if (video) {
+        video.trendingScore = await calculateTrendingScore(video);
+        await video.save();
+    }
+
     return review;
 };
 
@@ -155,6 +201,14 @@ exports.updateReview = async (reviewId, userId, data) => {
         err.statusCode = 404;
         throw err;
     }
+
+    // Update trendingScore
+    const video = await Video.findById(review.video);
+    if (video) {
+        video.trendingScore = await calculateTrendingScore(video);
+        await video.save();
+    }
+
     return review;
 };
 
@@ -182,12 +236,17 @@ exports.toggleLike = async (id, userId) => {
     if (index === -1) {
         video.likes.push({ user: userId });
         video.likesCount = (video.likesCount || 0) + 1;
+        video.trendingScore += 10; // Incremental update as per Step B
         userLiked = true;
     } else {
         video.likes.splice(index, 1);
         video.likesCount = Math.max(0, (video.likesCount || 0) - 1);
+        video.trendingScore = Math.max(0, video.trendingScore - 10);
         userLiked = false;
     }
+    
+    // Also recalculate full score to account for freshness and ratings
+    video.trendingScore = await calculateTrendingScore(video);
     
     await video.save();
     return { likesCount: video.likesCount, userLiked };
