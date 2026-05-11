@@ -32,7 +32,12 @@ exports.register = async (data) => {
     newUser.password = undefined;
 
     if (emailQueue) {
-        emailQueue.add('sendWelcome', { to: newUser.email, username: newUser.username }).catch(() => {});
+        console.log(`[QUEUE] Adding welcome email job for ${newUser.email}`);
+        emailQueue.add('sendWelcome', { to: newUser.email, username: newUser.username })
+            .then(() => console.log(`[QUEUE] Welcome email job added successfully`))
+            .catch((err) => console.error(`[QUEUE] Failed to add email job:`, err.message));
+    } else {
+        console.warn(`[QUEUE] emailQueue is not initialized!`);
     }
 
     return { user: newUser, token };

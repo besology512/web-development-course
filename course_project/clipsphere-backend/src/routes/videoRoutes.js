@@ -231,4 +231,53 @@ router.patch('/:id/reviews/me', videoController.updateReview);
  */
 router.post('/:id/like', videoController.likeVideo);
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Video:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         title:
+ *           type: string
+ *         description:
+ *           type: string
+ *         owner:
+ *           type: string
+ *         videoURL:
+ *           type: string
+ *         duration:
+ *           type: number
+ *         viewsCount:
+ *           type: integer
+ *         likesCount:
+ *           type: integer
+ *         status:
+ *           type: string
+ *           enum: [public, private, flagged, reported]
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *     Review:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         rating:
+ *           type: number
+ *           minimum: 1
+ *           maximum: 5
+ *         comment:
+ *           type: string
+ *         user:
+ *           type: string
+ *         video:
+ *           type: string
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ */
+
 module.exports = router;
