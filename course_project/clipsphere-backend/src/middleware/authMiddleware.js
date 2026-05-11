@@ -56,3 +56,28 @@ exports.restrictTo = (...roles) => {
         next();
     };
 };
+
+exports.attachUserIfPresent = async (req, res, next) => {
+    try {
+        let token;
+        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+
+        if (!token) return next();
+
+        const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET).catch(() => null);
+        if (!decoded) return next();
+
+        const currentUser = await User.findById(decoded.id);
+        
+        if (currentUser && currentUser.active) {
+            req.user = currentUser;
+            if (!req.user.id) req.user.id = currentUser._id.toString();
+        }
+        
+        next();
+    } catch (error) {
+        next();
+    }
+};

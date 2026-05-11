@@ -17,6 +17,7 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(helmet()); // Security headers

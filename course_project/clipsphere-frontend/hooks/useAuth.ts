@@ -13,11 +13,16 @@ export interface AuthUser {
 
 export function useAuth() {
     const [user, setUser] = useState<AuthUser | null>(null);
+    const [token, setTokenState] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        const storedToken = localStorage.getItem('token');
         const cachedUser = localStorage.getItem('user');
+
+        if (storedToken) {
+            setTokenState(storedToken);
+        }
 
         if (cachedUser) {
             try {
@@ -29,7 +34,7 @@ export function useAuth() {
             }
         }
 
-        if (!token) { setLoading(false); return; }
+        if (!storedToken) { setLoading(false); return; }
         api.get('/users/me').then(res => {
             setUser(res.data.user);
             setStoredUser(res.data.user);
@@ -41,6 +46,7 @@ export function useAuth() {
     const login = async (email: string, password: string) => {
         const res = await api.post('/auth/login', { email, password });
         setToken(res.token);
+        setTokenState(res.token);
         setUser(res.data.user);
         setStoredUser(res.data.user);
         return res.data.user;
@@ -49,8 +55,9 @@ export function useAuth() {
     const logout = () => {
         clearToken();
         setUser(null);
+        setTokenState(null);
         if (typeof window !== 'undefined') window.location.href = '/login';
     };
 
-    return { user, loading, login, logout };
+    return { user, token, loading, login, logout };
 }

@@ -5,6 +5,8 @@ const User = require('../models/User');
 const { emitLikeNotification } = require('../services/socketService');
 let emailQueue;
 try { emailQueue = require('../queues/emailQueue'); } catch (e) {}
+let videoQueue;
+try { videoQueue = require('../queues/videoQueue'); } catch (e) {}
 
 exports.createVideoMetadata = async (req, res, next) => {
     try {
@@ -43,6 +45,20 @@ exports.uploadVideo = async (req, res, next) => {
 
         // 3. Get Presigned URL for immediate playback
         const playURL = await videoService.getPresignedUrl(objectPath);
+
+        // 4. Add to video processing queue for duration metadata extraction
+        if (videoQueue) {
+            videoQueue.add('processDuration', {
+                videoId: video._id.toString(),
+                objectPath: objectPath
+            }).then(() => {
+                console.log(`[QUEUE] Job added for video ${video._id}`);
+            }).catch((err) => {
+                console.error(`[QUEUE ERROR] Failed to add job for video ${video._id}:`, err.message);
+            });
+        } else {
+            console.warn(`[QUEUE WARNING] Video queue is not initialized`);
+        }
 
         res.status(201).json({
             status: 'success',

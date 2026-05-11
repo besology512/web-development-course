@@ -42,8 +42,6 @@ services:
     build:
       context: ./clipsphere-backend
     container_name: clipsphere_backend
-    ports:
-      - "5000:5000"
     environment:
       PORT: 5000
       NODE_ENV: development
@@ -62,6 +60,8 @@ services:
       MINIO_PUBLIC_BASE: http://localhost:3000/storage
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      STRIPE_SECRET_KEY: sk_test_placeholder
+      STRIPE_WEBHOOK_SECRET: whsec_placeholder
       SMTP_HOST: smtp.ethereal.email
       SMTP_PORT: 587
       SMTP_USER: kenyon97@ethereal.email
@@ -80,8 +80,14 @@ services:
     command: node worker.js
     environment:
       CLIENT_URL: http://localhost:3000
+      MONGODB_URI: mongodb://mongodb:27017/clipsphere
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: clipsphere-videos
       SMTP_HOST: smtp.ethereal.email
       SMTP_PORT: 587
       SMTP_USER: kenyon97@ethereal.email
@@ -89,18 +95,30 @@ services:
       SMTP_FROM: kenyon97@ethereal.email
     depends_on:
       - redis
+      - mongodb
+      - minio
 
   frontend:
     build:
       context: ./clipsphere-frontend
     container_name: clipsphere_frontend
-    ports:
-      - "3000:3000"
     environment:
       BACKEND_URL: http://backend:5000
       STORAGE_URL: http://minio:9000
     depends_on:
       - backend
+
+  nginx:
+    build:
+      context: ./nginx
+    container_name: clipsphere_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - frontend
+      - backend
+      - minio
 
 volumes:
   mongodb_data:
