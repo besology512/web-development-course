@@ -13,6 +13,7 @@ const userRoutes = require('./routes/userRoutes');
 const videoRoutes = require('./routes/videoRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
@@ -23,6 +24,10 @@ app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:3000',
     credentials: true
 }));
+
+// Webhook handler MUST come before JSON parsing to access raw body
+const paymentController = require('./controllers/paymentController');
+app.post('/api/v1/payments/webhook', express.raw({type: 'application/json'}), paymentController.handleStripeWebhook);
 
 app.use(express.json()); // Body parser
 app.use(mongoSanitize()); // Data sanitization against NoSQL query injection
@@ -73,6 +78,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/videos', videoRoutes);
 app.use('/api/v1/videos', uploadRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/admin', adminRoutes);
 
 // Health Check

@@ -56,6 +56,36 @@ const userSchema = new mongoose.Schema({
             likes: { type: Boolean, default: true },
             tips: { type: Boolean, default: true }
         }
+    },
+    // Monetization fields
+    wallet: {
+        balance: {
+            type: Number,
+            default: 0,
+            min: 0
+        },
+        pendingBalance: {
+            type: Number,
+            default: 0,
+            min: 0
+        },
+        totalEarnings: {
+            type: Number,
+            default: 0,
+            min: 0
+        },
+        currency: {
+            type: String,
+            default: 'USD'
+        },
+        stripeAccountId: {
+            type: String,
+            default: null
+        },
+        lastPayout: {
+            type: Date,
+            default: null
+        }
     }
 }, {
     timestamps: true,
@@ -72,6 +102,14 @@ userSchema.pre('save', async function(next) {
 // Compare password
 userSchema.methods.comparePassword = async function(candidatePassword, userPassword) {
     return await bcrypt.compare(candidatePassword, userPassword);
+};
+
+// Add transaction to wallet
+userSchema.methods.addEarnings = async function(amount) {
+    this.wallet.balance += amount;
+    this.wallet.totalEarnings += amount;
+    await this.save();
+    return this.wallet;
 };
 
 const User = mongoose.model('User', userSchema);
