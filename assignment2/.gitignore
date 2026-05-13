@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+.next/
+dist/
+build/
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Firebase Secrets
+firebase-service-account.json
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+
+# Twilio Secrets
+twilio_recovery.txt
+
+# OS Files
+.DS_Store
+Thumbs.db

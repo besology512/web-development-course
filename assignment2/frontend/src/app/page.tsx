@@ -9,6 +9,10 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [idToken, setIdToken] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [mfaPending, setMfaPending] = useState(false);
+  const [mfaUid, setMfaUid] = useState('');
+  const [otp, setOtp] = useState('');
+  const [error, setError] = useState('');
 
   const handleLogin = async () => {
     setLoading(true);
@@ -24,14 +28,44 @@ export default function Home() {
         }
       });
 
-      if (response.ok) {
+      const data = await response.json();
+
+      if (data.status === 'PENDING_MFA') {
+        setMfaPending(true);
+        setMfaUid(data.uid);
+      } else if (response.ok) {
         setUser(user);
         setIdToken(idToken);
       } else {
-        console.error('Backend authentication failed');
+        setError('Backend authentication failed');
       }
     } catch (error) {
-      console.error('Login flow failed', error);
+      setError('Login flow failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyMFA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'}/auth/verify-mfa`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: mfaUid, code: otp })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+        // idToken is already set if needed
+      } else {
+        setError('Invalid or expired OTP code');
+      }
+    } catch (err) {
+      setError('Verification failed');
     } finally {
       setLoading(false);
     }
@@ -46,16 +80,39 @@ export default function Home() {
             <h1>GHOST_MESSENGER</h1>
             <p>ESTABLISHING_IDENTITY_REQUIRED</p>
           </div>
-          <button 
-            onClick={handleLogin} 
-            disabled={loading}
-            className="login-btn"
-          >
-            <LogIn size={20} />
-            {loading ? 'INITIALIZING_OAUTH...' : 'AUTHENTICATE_WITH_GOOGLE'}
-          </button>
+          
+          {!mfaPending ? (
+            <button 
+              onClick={handleLogin} 
+              disabled={loading}
+              className="login-btn"
+            >
+              <LogIn size={20} />
+              {loading ? 'INITIALIZING_OAUTH...' : 'AUTHENTICATE_WITH_GOOGLE'}
+            </button>
+          ) : (
+            <form onSubmit={handleVerifyMFA} className="mfa-form">
+              <input 
+                type="text" 
+                maxLength={6} 
+                placeholder="6-DIGIT_CODE" 
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                autoFocus
+              />
+              <button disabled={loading} className="login-btn">
+                {loading ? 'VERIFYING...' : 'SECURE_SESSION'}
+              </button>
+              <button type="button" onClick={() => setMfaPending(false)} className="cancel-link">
+                CANCEL_HANDSHAKE
+              </button>
+            </form>
+          )}
+
+          {error && <p className="error-msg">{error}</p>}
+
           <div className="security-footer">
-            <p>ENCRYPTION: AES-256 (PENDING)</p>
+            <p>ENCRYPTION: AES-256 (ACTIVE)</p>
             <p>STORAGE: VOLATILE_REDIS_LIST</p>
           </div>
         </div>
@@ -144,6 +201,40 @@ export default function Home() {
           }
 
           .security-footer p { margin: 0.2rem 0; }
+
+          .mfa-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+          }
+
+          .mfa-form input {
+            background: #111;
+            border: 1px solid #333;
+            color: #00ff41;
+            padding: 1rem;
+            text-align: center;
+            font-size: 1.2rem;
+            letter-spacing: 4px;
+            font-family: inherit;
+            outline: none;
+          }
+
+          .cancel-link {
+            background: none;
+            border: none;
+            color: #555;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-family: inherit;
+            margin-top: 0.5rem;
+          }
+
+          .error-msg {
+            color: #ff0000;
+            font-size: 0.8rem;
+            margin-top: 1rem;
+          }
         `}</style>
       </div>
     );

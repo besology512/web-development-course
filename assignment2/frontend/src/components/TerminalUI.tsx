@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Terminal, Shield, Ghost, Activity, Send } from 'lucide-react';
+import { encryptMessage, decryptMessage } from '@/lib/crypto';
 
 interface Message {
   sender: string;
@@ -33,10 +34,14 @@ export default function TerminalUI({ user, idToken }: { user: any; idToken: stri
     });
 
     newSocket.on('receive_message', (msg: Message & { room: string }) => {
+      // Decrypt message text
+      const decryptedText = decryptMessage(msg.text);
+      const decryptedMsg = { ...msg, text: decryptedText };
+
       // Only show messages for current chat or global
       const currentRoom = [user.uid, targetUid].sort().join('_');
       if (msg.room === currentRoom || targetUid === 'global') {
-        setMessages(prev => [...prev, msg]);
+        setMessages(prev => [...prev, decryptedMsg]);
       }
     });
 
@@ -65,6 +70,19 @@ export default function TerminalUI({ user, idToken }: { user: any; idToken: stri
       }
     });
 
+    newSocket.on('history_wipe', ({ room, history }: { room: string; history: Message[] }) => {
+      const decryptedHistory = history.map(msg => ({
+        ...msg,
+        text: decryptMessage(msg.text)
+      }));
+      setMessages(decryptedHistory);
+      setPulseLogs(prev => [...prev, {
+        type: 'REDIS',
+        message: `Atomic Read-Once: ${history.length} messages retrieved and purged.`,
+        timestamp: new Date().toISOString()
+      }]);
+    });
+
     return () => {
       newSocket.close();
     };
@@ -85,9 +103,12 @@ export default function TerminalUI({ user, idToken }: { user: any; idToken: stri
     e.preventDefault();
     if (!inputText.trim() || !socket) return;
 
+    // Encrypt message text
+    const encryptedText = encryptMessage(inputText);
+
     socket.emit('send_message', {
       targetUid,
-      text: inputText
+      text: encryptedText
     });
     setInputText('');
   };

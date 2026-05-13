@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const redis = require('redis');
 const cors = require('cors');
 const admin = require('firebase-admin');
+const twilio = require('twilio');
 
 const app = express();
 const server = http.createServer(app);
@@ -42,6 +43,10 @@ const redisClient = redis.createClient({
 
 redisClient.on('error', (err) => console.log('[REDIS]: Client Error', err));
 redisClient.connect().then(() => console.log('[REDIS]: Connected'));
+
+// Twilio Setup
+const twilioClient = process.env.MOCK_TWILIO === 'true' ? null : 
+    twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 // Redis Key Expiry Listener (for Pulse Log)
 const subscriber = redisClient.duplicate();
@@ -99,10 +104,63 @@ app.post('/auth/login', verifyToken, async (req, res) => {
         user = new User({ uid, displayName: name, email, photoURL: picture });
         await user.save();
         console.log(`[AUTH]: Silent Registration for ${name} (${uid})`);
-    } else {
-        console.log(`[AUTH]: Token verified for ${name} (${uid})`);
     }
-    res.json(user);
+
+    // MFA Challenge Trigger
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const phone = process.env.MFA_PHONE_NUMBER || '+20XXXXXXXXX';
+    
+    // Store OTP in Redis (5 min expiry)
+    await redisClient.setEx(`mfa:${uid}`, 300, otp);
+    
+    if (process.env.MOCK_TWILIO === 'true') {
+        console.log(`[TWILIO]: MOCK MFA Challenge for ${uid}: ${otp}`);
+    } else {
+        try {
+            await twilioClient.messages.create({
+                body: `Your Ghost Messenger verification code is: ${otp}`,
+                from: process.env.TWILIO_PHONE_NUMBER,
+                to: phone
+            });
+            console.log(`[TWILIO]: MFA Challenge dispatched to ${phone}`);
+        } catch (err) {
+            console.error('[TWILIO]: Error sending SMS', err);
+        }
+    }
+
+    res.json({ status: 'PENDING_MFA', uid });
+    
+    // Pulse Monitor Logs
+    io.emit('system_pulse', {
+        type: 'TWILIO',
+        message: `MFA Challenge dispatched to ${phone}`,
+        timestamp: new Date().toISOString()
+    });
+    io.emit('system_pulse', {
+        type: 'AUTH',
+        message: `Awaiting SMS code verification.`,
+        timestamp: new Date().toISOString()
+    });
+});
+
+app.post('/auth/verify-mfa', async (req, res) => {
+    const { uid, code } = req.body;
+    const savedOtp = await redisClient.get(`mfa:${uid}`);
+
+    if (savedOtp && savedOtp === code) {
+        await redisClient.del(`mfa:${uid}`);
+        const user = await User.findOne({ uid });
+        
+        io.emit('system_pulse', {
+            type: 'TWILIO',
+            message: `SMS Code Verified. Session promoted to SECURE.`,
+            timestamp: new Date().toISOString()
+        });
+
+        res.json({ status: 'SECURE', user });
+    } else {
+        res.status(401).json({ error: 'Invalid or expired OTP' });
+    }
 });
 
 // Socket.io Logic
@@ -128,11 +186,11 @@ io.on('connection', (socket) => {
         io.emit('presence_update', onlineUsers);
     });
 
-    socket.on('join_room', ({ targetUid }) => {
+    socket.on('join_room', async ({ targetUid }) => {
         if (!socket.uid) return;
         
-        // Deterministic room ID for 1-on-1 chat
-        const room = [socket.uid, targetUid].sort().join('_');
+        // Deterministic room ID for 1-on-1 chat or global
+        const room = targetUid === 'global' ? 'global' : [socket.uid, targetUid].sort().join('_');
         socket.join(room);
         
         console.log(`[SOCKET]: User joined private room ${room}`);
@@ -141,13 +199,27 @@ io.on('connection', (socket) => {
             message: `Joined private room with ${targetUid}. ID: ${room}`,
             timestamp: new Date().toISOString()
         });
+
+        // Atomic Read-Once: Fetch and wipe history
+        const redisKey = `chat:${room}`;
+        const multi = redisClient.multi();
+        multi.lRange(redisKey, 0, -1);
+        multi.del(redisKey);
+        
+        const [history] = await multi.exec();
+        
+        if (history && history.length > 0) {
+            const parsedHistory = history.map(m => JSON.parse(m));
+            socket.emit('history_wipe', { room, history: parsedHistory });
+            console.log(`[REDIS]: Atomic Read-Once triggered for ${redisKey}. History purged.`);
+        }
     });
 
     socket.on('send_message', async (data) => {
         const { targetUid, text } = data;
         if (!socket.uid) return;
 
-        const room = [socket.uid, targetUid].sort().join('_');
+        const room = targetUid === 'global' ? 'global' : [socket.uid, targetUid].sort().join('_');
         const msg = { sender: socket.name, text, timestamp: new Date().toISOString() };
         
         const redisKey = `chat:${room}`;

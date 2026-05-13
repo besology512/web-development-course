@@ -8,6 +8,8 @@
     "start": "next start"
   },
   "dependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "crypto-js": "^4.2.0",
     "firebase": "^12.13.0",
     "lucide-react": "^1.14.0",
     "next": "16.2.6",
